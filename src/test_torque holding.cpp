@@ -28,69 +28,61 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(3,5,6,8);//arduino uno
 #define ARM_LENGTH 0.1f    // 100mm = 0.1m
 #define LOAD_MASS 0.02f    // 20g = 0.02kg
 #define GRAVITY 9.81f      // m/s^2
-#define VOLTAGE_TO_TORQUE_RATIO 0.018870f  // [Nm/V] - adjust this based on your motor， 0.0434/2.3
+#define VOLTAGE_TO_TORQUE_RATIO 0.0260f  //TUNED [Nm/V] - adjust this based on your motor， theoretiacal: 0.0434/2.3
 
-float voltageToTorque(float voltage) {
-    return voltage * VOLTAGE_TO_TORQUE_RATIO;
+float calculateGravityTorque(float angle) {
+    // Torque = mass * gravity * arm_length * sin(angle)
+    // This gives the torque needed to counteract gravity
+    float gravity_torque = LOAD_MASS * GRAVITY * ARM_LENGTH * sin(angle);
+    return gravity_torque;
 }
 
-float calculateRequiredTorque(float angle) {
-    float torque = LOAD_MASS * GRAVITY * ARM_LENGTH * sin(angle);
-    float max_torque = max_torque; // [Nm] set the maximum torqu
-    return _constrain(torque, -max_torque/2, max_torque/2);  // Limit gravity compensation
+float torqueToVoltage(float torque) {
+    return torque / VOLTAGE_TO_TORQUE_RATIO;
 }
-
-float normalizeAngle(float angle) {
-    while(angle > 2*PI) angle -= 2*PI;
-    while(angle < -2*PI) angle += 2*PI;
-    return angle;
-}
-
 
 // torque set point variable
 float max_torque = 2.0; // maximum torque limit [Nm]
 float current_torque = 0.0; // current torque value
-float target_angle = 0.0; // target angle value
+float voltage_to_move = 0.0; // target angle value
 // instantiate the commander
 Commander command = Commander(Serial);
-void doTarget(char* cmd) { command.scalar(&target_angle, cmd); }
+//void doTarget(char* cmd) { command.scalar(&target_angle, cmd); }
+
 
 void setup() {
-
+  Serial.begin(115200);
+  Serial.println("Starting gravity compensation setup...");
   // initialise magnetic sensor hardware
   sensor.init();
-  Serial.print("Sensor angle: ");
-  Serial.println(sensor.getAngle());
-  // link the motor to the sensor
   motor.linkSensor(&sensor);
-
+  Serial.print("Initial sensor angle: ");
+  Serial.println(sensor.getAngle());
   // driver config
-  // power supply voltage [V]
   driver.voltage_power_supply = 12;
   driver.init();
-  // link the motor and the driver
   motor.linkDriver(&driver);
 
   // choose FOC modulation (optional)
-  motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+  //motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
 
   // set motion control loop to be used
-  motor.torque_controller = TorqueControlType::voltage;
-  motor.controller = MotionControlType::torque;
+  motor.torque_controller = TorqueControlType::voltage; //changed to voltage control*
+  motor.controller = MotionControlType::torque; //changed to torque control*
 
   // contoller configuration
   // default parameters in defaults.h
 
   // velocity PI controller parameters
-  motor.PID_velocity.P = 0.01f;
-  motor.PID_velocity.I = 0.1f;
+  motor.PID_velocity.P = 0.04f;
+  motor.PID_velocity.I = 0.01f;
   motor.PID_velocity.D = 0.0f;
   motor.PID_velocity.output_ramp = 1000; // acceleration [rad/s^2]
   //motor.LPF_velocity.Tf = 0.01; // filter for velocity
 
   // maximal voltage to be set to the motor
   motor.voltage_limit = 12;
-
+  
   // velocity low pass filtering time constant
   // the lower the less filtered
   //motor.LPF_velocity.Tf = 0.01f;
@@ -100,7 +92,7 @@ void setup() {
   // maximal velocity of the position control
   motor.velocity_limit = 20;
 
-  max_torque = VOLTAGE_TO_TORQUE_RATIO * motor.voltage_limit; // [Nm] set the maximum torque
+  max_torque = VOLTAGE_TO_TORQUE_RATIO * motor.voltage_limit; // [Nm] set the maximum torque*
 
   // use monitoring with serial
   Serial.begin(115200);
@@ -118,14 +110,14 @@ void setup() {
   motor.initFOC(); // set to false to skip the alignment if the zero_electric_angle is set
 
   // add target command T
-  command.add('T', doTarget, "target angle");
-  motor.useMonitoring(Serial);
+  //command.add('T', doTarget, "target angle");
+  //motor.useMonitoring(Serial);
 
   Serial.println(F("Motor ready."));
   //Serial.println(F("Set the target angle using serial terminal:"));
   Serial.println("Starting...");
   _delay(1000);
-  
+
 }
 
 
@@ -137,38 +129,45 @@ void loop() {
   // Bluepill loop ~10kHz
   motor.loopFOC();
   
-  //Serial.println(current_torque);
-  // Motion control function
-  // velocity, position or voltage (defined in motor.controller)
-  // this function can be run at much lower frequency than loopFOC() function
-  // You can also use motor.move() and set the motor.target in the code
-  //motor.move(target_angle);
-
-
-  float current_angle = sensor.getAngle();
-  
-  // Calculate position error
-  float angle_error = _normalizeAngle(target_angle - current_angle);
+  float current_angle = sensor.getAngle() - 2.54f; // adjust this offset to set the "zero" position*
   
   // Calculate gravity compensation torque
-  float gravity_torque = calculateRequiredTorque(current_angle);
+  float gravity_torque = calculateGravityTorque(current_angle);
   
-  // Calculate total torque (position correction + gravity compensation)
-  float position_torque = motor.P_angle.P * angle_error;
-  current_torque = position_torque + gravity_torque;
+  // Calculate position error and correction torque
+  float angle_error = 0;
   
-  // Limit the torque
-  current_torque = _constrain(current_torque, -max_torque, max_torque);
+  // Simple proportional control for position (you can tune this)
+  float position_gain = 0.5f;  // Adjust this value to tune responsiveness
+  float position_torque = position_gain * angle_error;
   
-  // Apply torque
-  motor.move(current_torque);
+  // Add damping (derivative term) to prevent oscillation
+  static float last_angle = current_angle;
+  float velocity = (current_angle - last_angle) * 1000.0f; // Approximate velocity
+  float damping_gain = 0.01f;  // Adjust this value to tune damping* not used currently as not working
+  float damping_torque = 0;   //set to 0 for now to make it work
+  last_angle = current_angle;
   
+  // Total torque = gravity compensation + position control + damping
+  float total_torque = gravity_torque + position_torque + damping_torque;
+  
+  // Limit the torque to safe values
+  float voltage_command = torqueToVoltage(total_torque);
+  voltage_command = constrain(voltage_command, -motor.voltage_limit, motor.voltage_limit);
 
+  //MAGIC HAPPENS HERE
+  // Apply the voltage command to the motor
+  motor.move(-voltage_command);
   // function intended to be used with serial plotter to monitor motor variables
   // significantly slowing the execution down!!!!
-  // motor.monitor();
-  Serial.print(current_torque);
-  //Serial.print(max_torque);
+  //motor.monitor();
+  //Serial.print(current_angle);
+  Serial.print("Angle: "); Serial.print(current_angle, 3);
+  Serial.print(", Gravity_T: "); Serial.print(gravity_torque, 4);
+  Serial.print(", Velocity: "); Serial.print(velocity, 4);
+  Serial.print(", Damping_T: "); Serial.print(damping_torque, 4);
+  Serial.print(", Total_T: "); Serial.print(total_torque, 4);
+  Serial.print(", Voltage: "); Serial.println(voltage_command, 4);
   // user communication
   command.run();
 }

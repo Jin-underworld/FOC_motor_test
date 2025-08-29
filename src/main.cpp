@@ -1,5 +1,6 @@
 #include <SimpleFOC.h>
 #include <motorControl.h>
+#include "main.h"
 
 // Create motor control instance
 MotorControl motorController;

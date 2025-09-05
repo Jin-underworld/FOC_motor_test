@@ -14,13 +14,14 @@
 // // magnetic sensor instance - SPI
 // //MagneticSensorSPI sensor = MagneticSensorSPI(AS5147_SPI, 10);
 // // magnetic sensor instance - MagneticSensorI2C
-// MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
+// //MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
 // // magnetic sensor instance - analog output
 // // MagneticSensorAnalog sensor = MagneticSensorAnalog(A1, 14, 1020);
+// MagneticSensorPWM sensor = MagneticSensorPWM(2,3, 909);// low
 
 // // BLDC motor & driver instance
-// BLDCMotor motor = BLDCMotor(7);
-// BLDCDriver3PWM driver = BLDCDriver3PWM(3,5,6,8);//arduino uno
+// BLDCMotor motor = BLDCMotor(11,8.8f);
+// BLDCDriver3PWM driver = BLDCDriver3PWM(3,5,6);//arduino uno
 // // Stepper motor & driver instance
 // //StepperMotor motor = StepperMotor(50);
 // //StepperDriver4PWM driver = StepperDriver4PWM(9, 5, 10, 6,  8);
@@ -58,7 +59,7 @@
 
 //   // velocity PI controller parameters
 //   motor.PID_velocity.P = 0.04f;
-//   motor.PID_velocity.I = 0.01;
+//   motor.PID_velocity.I = 0.01f;
 //   motor.PID_velocity.D = 0.0;
 //   //motor.LPF_velocity.Tf = 0.01; // filter for velocity
 
@@ -93,7 +94,7 @@
 //   Serial.println(F("Motor ready."));
 //   Serial.println(F("Set the target angle using serial terminal:"));
 //   Serial.println("Starting...");
-//   motor.move(1.1);
+//   //motor.move(1.1);
 //   _delay(1000);
 // }
 
@@ -113,7 +114,7 @@
 
 //   // function intended to be used with serial plotter to monitor motor variables
 //   // significantly slowing the execution down!!!!
-//   motor.monitor();
+//   //motor.monitor();
 //   // user communication
 //   command.run();
 // }

@@ -2,11 +2,11 @@
 
 /**
  *
- * Position/angle motion control example
+ * Motor gravity compensation example
  * Steps:
  * 1) Configure the motor and magnetic sensor
  * 2) Run the code
- * 3) Set the target angle (in radians) from serial terminal
+ * 3) watch the motor armature with mass loaded - it should hold its position against gravity
  *
  */
 
@@ -14,21 +14,26 @@
 // magnetic sensor instance - SPI
 //MagneticSensorSPI sensor = MagneticSensorSPI(AS5147_SPI, 10);
 // magnetic sensor instance - MagneticSensorI2C
-MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
+//MagneticSensorI2C sensor = MagneticSensorI2C(AS5048_I2C);
 // magnetic sensor instance - analog output
-// MagneticSensorAnalog sensor = MagneticSensorAnalog(A1, 14, 1020);
-
+MagneticSensorPWM sensor = MagneticSensorPWM(2,3,909);// low
+void doPWM() {
+    sensor.handlePWM();
+}
 // BLDC motor & driver instance
-BLDCMotor motor = BLDCMotor(7, 3.0f); // 7 pole pairs, 3.0 ohm phase resistance
-BLDCDriver3PWM driver = BLDCDriver3PWM(3,5,6,8);//arduino uno
+BLDCMotor motor = BLDCMotor(11, 8.8f); // 7 pole pairs, 3.0 ohm phase resistance
+BLDCDriver3PWM driver = BLDCDriver3PWM(3,5,6);//arduino uno
 // Stepper motor & driver instance
 //StepperMotor motor = StepperMotor(50);
 //StepperDriver4PWM driver = StepperDriver4PWM(9, 5, 10, 6,  8);
 
 #define ARM_LENGTH 0.1f    // 100mm = 0.1m
-#define LOAD_MASS 0.02f    // 20g = 0.02kg
+#define LOAD_MASS 0.05f    // 20g = 0.02kg
 #define GRAVITY 9.81f      // m/s^2
-#define VOLTAGE_TO_TORQUE_RATIO 0.0260f  //TUNED [Nm/V] - adjust this based on your motor， theoretiacal: 0.0434/2.3
+#define VOLTAGE_TO_TORQUE_RATIO 0.1983f  //TUNED [Nm/V] - adjust this based on your motor， theoretiacal: 0.0434/2.3
+float compensate_angle = 1.95f + 0.166; // angle to be compensated [rad]
+int mode = -1; //1 or -1 to change direction of compensation
+float lift_ratio = 1.3f; // to slightly overcompensate gravity
 
 float calculateGravityTorque(float angle) {
     // Torque = mass * gravity * arm_length * sin(angle)
@@ -48,13 +53,14 @@ float voltage_to_move = 0.0; // target angle value
 // instantiate the commander
 Commander command = Commander(Serial);
 //void doTarget(char* cmd) { command.scalar(&target_angle, cmd); }
-
+void doMotor(char* cmd) { command.motor(&motor, cmd); }
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Starting gravity compensation setup...");
   // initialise magnetic sensor hardware
   sensor.init();
+  sensor.enableInterrupt(doPWM);
   motor.linkSensor(&sensor);
   Serial.print("Initial sensor angle: ");
   Serial.println(sensor.getAngle());
@@ -74,9 +80,9 @@ void setup() {
   // default parameters in defaults.h
 
   // velocity PI controller parameters
-  motor.PID_velocity.P = 0.04f;
-  motor.PID_velocity.I = 0.01f;
-  motor.PID_velocity.D = 0.0f;
+  motor.PID_velocity.P = 0.05f;
+  motor.PID_velocity.I = 0.0f;
+  motor.PID_velocity.D = 0.3f;
   motor.PID_velocity.output_ramp = 1000; // acceleration [rad/s^2]
   //motor.LPF_velocity.Tf = 0.01; // filter for velocity
 
@@ -98,9 +104,9 @@ void setup() {
   Serial.begin(115200);
   // comment out if not needed
   motor.useMonitoring(Serial);
-
-
-  motor.zero_electric_angle = 2.21; // 2.21 cal. you can set it to a previously found value
+  compensate_angle = sensor.getAngle(); // initial angle to be compensated
+  //command.add('M', doMotor, "motor");
+  motor.zero_electric_angle = 1.96; // 2.21 cal. you can set it to a previously found value
   motor.sensor_direction = CCW; // you can set this to a previously found value
 
   // initialize motor
@@ -112,7 +118,7 @@ void setup() {
   // add target command T
   //command.add('T', doTarget, "target angle");
   //motor.useMonitoring(Serial);
-
+  
   Serial.println(F("Motor ready."));
   //Serial.println(F("Set the target angle using serial terminal:"));
   Serial.println("Starting...");
@@ -129,35 +135,44 @@ void loop() {
   // Bluepill loop ~10kHz
   motor.loopFOC();
   
-  float current_angle = sensor.getAngle() - 2.54f; // adjust this offset to set the "zero" position*
+  float current_angle = sensor.getAngle() - compensate_angle; // adjust this offset to set the "zero" position*
   
   // Calculate gravity compensation torque
   float gravity_torque = calculateGravityTorque(current_angle);
   
   // Calculate position error and correction torque
-  float angle_error = 0;
+  float angle_error = current_angle - sensor.getAngle() - compensate_angle;
   
   // Simple proportional control for position (you can tune this)
-  float position_gain = 0.5f;  // Adjust this value to tune responsiveness
-  float position_torque = position_gain * angle_error;
+  float position_gain = 0.05f;  // Adjust this value to tune responsiveness
+  float position_torque = 0;//position_gain * angle_error;
   
-  // Add damping (derivative term) to prevent oscillation
-  static float last_angle = current_angle;
-  float velocity = (current_angle - last_angle) * 1000.0f; // Approximate velocity
-  float damping_gain = 0.01f;  // Adjust this value to tune damping* not used currently as not working
-  float damping_torque = 0;   //set to 0 for now to make it work
-  last_angle = current_angle;
+
+  
+
+  //Add damping (derivative term) to prevent oscillation
+  // static float last_angle = current_angle;
+  // static unsigned long last_t = micros();
+  // unsigned long now = micros();
+  // float dt = (now - last_t) * 1e-6f; // seconds
+  // float velocity = (current_angle - last_angle) / dt;// Approximate velocity
+  // last_t = now;
+  // //
+  // float damping_gain = 0.008f;  // Adjust this value to tune damping* not used currently as not working
+  float damping_torque = 0;//-damping_gain * velocity;   //set to 0 for now to make it work
+  // last_angle = current_angle;
   
   // Total torque = gravity compensation + position control + damping
-  float total_torque = gravity_torque + position_torque + damping_torque;
+  float total_torque = gravity_torque*lift_ratio + position_torque + damping_torque;
   
   // Limit the torque to safe values
-  float voltage_command = torqueToVoltage(total_torque);
-  voltage_command = constrain(voltage_command, -motor.voltage_limit, motor.voltage_limit);
+  voltage_to_move = torqueToVoltage(total_torque);
+  voltage_to_move = constrain(voltage_to_move, -motor.voltage_limit, motor.voltage_limit);
 
-  //MAGIC HAPPENS HERE
-  // Apply the voltage command to the motor
-  motor.move(-voltage_command);
+  //MAGIC 
+  motor.move(mode * voltage_to_move); // apply the voltage command to the motor*
+
+ 
   // function intended to be used with serial plotter to monitor motor variables
   // significantly slowing the execution down!!!!
   //motor.monitor();
@@ -167,7 +182,7 @@ void loop() {
   Serial.print(", Velocity: "); Serial.print(velocity, 4);
   Serial.print(", Damping_T: "); Serial.print(damping_torque, 4);
   Serial.print(", Total_T: "); Serial.print(total_torque, 4);
-  Serial.print(", Voltage: "); Serial.println(voltage_command, 4);
+  Serial.print(", Voltage: "); Serial.println(voltage_to_move, 4);
   // user communication
-  command.run();
+  //command.run();
 }

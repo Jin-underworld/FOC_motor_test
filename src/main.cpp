@@ -9,7 +9,7 @@ void doPWM() {
 
 // BLDC motor & driver instance
 BLDCMotor motor = BLDCMotor(MOTOR_POLE_PAIRS, MOTOR_PHASE_RESISTANCE); // 7 pole pairs, 3.0 ohm phase resistance
-BLDCDriver3PWM driver = BLDCDriver3PWM(PIN_PWM_A, PIN_PWM_B, PIN_PWM_C);//arduino uno
+BLDCDriver3PWM driver = BLDCDriver3PWM(PIN_PWM_A, PIN_PWM_B, PIN_PWM_C, PIN_ENABLE);//arduino uno
 
 float current_angle = 0;
 float compensate_angle = 1.95f + 0.166;
@@ -73,7 +73,7 @@ void setup() {
     motor.PID_velocity.D = MOTOR_PID_VELOCITY_D;
     motor.PID_velocity.output_ramp = MOTOR_PID_VELOCITY_RAMP; // acceleration [rad/s^2]
     motor.P_angle.P = 2.0f;
-    motor.velocity_limit = 20;
+    motor.velocity_limit = 5;
 
     max_torque = VOLTAGE_TO_TORQUE_RATIO * motor.voltage_limit; // [Nm] set the maximum torque*
 
@@ -90,19 +90,20 @@ void setup() {
     delay(1000);
     
     // Perform homing to establish angle references
-    if (performHoming()) {
-        Serial.println("Homing successful!");
-        Serial.print("Reference angle set. Compensate angle: ");
-        Serial.println(compensate_angle);
-    } else {
-        Serial.println("Homing failed! Check motor and linkage.");
-        while(1) { delay(1000); } // Halt execution if homing fails
-    }
+    // if (performHoming()) {
+    //     Serial.println("Homing successful!");
+    //     Serial.print("Reference angle set. Compensate angle: ");
+    //     Serial.println(compensate_angle);
+    // } else {
+    //     Serial.println("Homing failed! Check motor and linkage.");
+    //     while(1) { delay(1000); } // Halt execution if homing fails
+    // }
 
     last_valid_angle = 0.0f; // At this point 0 is vertical (after compensation)
     previous_angle = 0.0f;
     zero_count = 0;
-
+    // add target command T
+    command.add('T', doMotor, "motion control");
     Serial.println("System ready. Starting gravity compensation...");
     delay(1000);
 }
@@ -227,11 +228,11 @@ void loop() {
     voltage_to_move = constrain(voltage_to_move, -motor.voltage_limit, motor.voltage_limit);
 
     //MAGIC 
-    //motor.move(mode * voltage_to_move); // Uncommented to actually move the motor
+    motor.move(mode * voltage_to_move); // Uncommented to actually move the motor
 
     Serial.print("Raw Angle: "); Serial.print(current_angle, 3);
     Serial.print(", Gravity Torque: "); Serial.println(gravity_torque, 3);
     Serial.print(", Voltage: "); Serial.println(voltage_to_move, 2);
     
-    // command.run();
+    command.run();
 }

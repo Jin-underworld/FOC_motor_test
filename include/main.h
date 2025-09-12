@@ -8,7 +8,7 @@
 #define BAUD_RATE 9600
 // Physical parameters for gravity compensation
 #define ARM_LENGTH 0.1f    // 100mm = 0.1m
-#define LOAD_MASS 0.05f    // 20g = 0.02kg
+#define LOAD_MASS 0.01f    // 20g = 0.02kg
 #define GRAVITY 9.81f      // m/s^2
 #define VOLTAGE_TO_TORQUE_RATIO 0.0260f  // TUNED [Nm/V]
 
@@ -16,9 +16,9 @@
 #define MOTOR_POLE_PAIRS 11
 #define MOTOR_PHASE_RESISTANCE 8.8f
 #define MOTOR_VOLTAGE_LIMIT 12.0f
-#define MOTOR_PID_VELOCITY_P 0.04f
-#define MOTOR_PID_VELOCITY_I 0.01f
-#define MOTOR_PID_VELOCITY_D 0.0f
+#define MOTOR_PID_VELOCITY_P 0.3f
+#define MOTOR_PID_VELOCITY_I 0.00f
+#define MOTOR_PID_VELOCITY_D 0.05f
 #define MOTOR_PID_VELOCITY_RAMP 1000.0f
 #define MOTOR_P_ANGLE 2.0f
 #define MOTOR_VELOCITY_LIMIT 20.0f
@@ -27,9 +27,9 @@
 #define MOTOR_ANGLE_OFFSET 2.54f  // Offset for "zero" position
 
 // Pin configuration (Arduino Uno/Mega)
-#define PIN_PWM_A 9
+#define PIN_PWM_A 11
 #define PIN_PWM_B 10
-#define PIN_PWM_C 11
+#define PIN_PWM_C 9
 #define PIN_ENABLE 8
 
 #define PIN_ENCODER 3

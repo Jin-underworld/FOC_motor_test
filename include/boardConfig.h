@@ -3,7 +3,7 @@
 #define BOARD_CONFIG_HPP
 
 // Board configurations
-#define BOARD_ARDUINO_MEGA 1
+#define BOARD_ARDUINO_UNO 1
 #define BOARD_STM32 2
 
 // Define which board to use (default to Arduino Mega if not specified)
@@ -12,16 +12,18 @@
 #endif
 
 // Pin configurations
-#if SELECTED_BOARD == BOARD_ARDUINO_MEGA
+#if SELECTED_BOARD == BOARD_ARDUINO_UNO
     // Arduino Mega pins for BLDC driver
-    #define PIN_PWM_A 3
-    #define PIN_PWM_B 5
-    #define PIN_PWM_C 6
+    #define PIN_PWM_A 11
+    #define PIN_PWM_B 10
+    #define PIN_PWM_C 9
     #define PIN_ENABLE 8
-    // I2C pins (for magnetic sensor)
-    #define PIN_SDA 20
-    #define PIN_SCL 21
 
+    #define PIN_ENCODER 3   
+    // // I2C pins (for magnetic sensor)
+    // #define PIN_SDA 20
+    // #define PIN_SCL 21
+    
 // #elif SELECTED_BOARD == BOARD_STM32
 //     // STM32 pins
 //     #define PIN_PWM_A PA0

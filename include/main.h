@@ -1,6 +1,5 @@
-//#include "boardConfig.h"
-//#include "encoderConfig.h"
-//#include "boardConfig.h"
+#define SELECTED_BOARD BOARD_ARDUINO_UNO
+#include "boardConfig.h"
 
 #ifndef MAIN_CONFIG_H
 #define MAIN_CONFIG_H
@@ -25,14 +24,6 @@
 #define MOTOR_ZERO_ELECTRIC_ANGLE 2.21f
 #define MOTOR_SENSOR_DIRECTION CCW
 #define MOTOR_ANGLE_OFFSET 2.54f  // Offset for "zero" position
-
-// Pin configuration (Arduino Uno/Mega)
-#define PIN_PWM_A 11
-#define PIN_PWM_B 10
-#define PIN_PWM_C 9
-#define PIN_ENABLE 8
-
-#define PIN_ENCODER 3
 
 // Position control parameters
 #define POSITION_GAIN 0.5f

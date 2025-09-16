@@ -94,8 +94,8 @@
 //   Serial.println(F("Motor ready."));
 //   Serial.println(F("Set the target angle using serial terminal:"));
 //   Serial.println("Starting...");
-//   //motor.move(1.1);
 //   _delay(1000);
+  
 // }
 
 
@@ -114,7 +114,7 @@
 
 //   // function intended to be used with serial plotter to monitor motor variables
 //   // significantly slowing the execution down!!!!
-//   //motor.monitor();
+//   motor.monitor();
 //   // user communication
 //   command.run();
 // }

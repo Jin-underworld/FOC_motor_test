@@ -30,65 +30,93 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(3,5,6);//arduino uno
 #define ARM_LENGTH 0.1f    // 100mm = 0.1m
 #define LOAD_MASS 0.05f    // 20g = 0.02kg
 #define GRAVITY 9.81f      // m/s^2
+<<<<<<< HEAD
 #define VOLTAGE_TO_TORQUE_RATIO 0.1983f  //TUNED [Nm/V] - adjust this based on your motor， theoretiacal: 0.0434/2.3
 float compensate_angle = 1.95f + 0.166; // angle to be compensated [rad]
 int mode = -1; //1 or -1 to change direction of compensation
 float lift_ratio = 1.3f; // to slightly overcompensate gravity
+=======
+#define VOLTAGE_TO_TORQUE_RATIO 0.018870f  // [Nm/V] - adjust this based on your motor， 0.0434/2.3
+>>>>>>> parent of 6f594c6 (got gravity compensation working, added comments too)
 
-float calculateGravityTorque(float angle) {
-    // Torque = mass * gravity * arm_length * sin(angle)
-    // This gives the torque needed to counteract gravity
-    float gravity_torque = LOAD_MASS * GRAVITY * ARM_LENGTH * sin(angle);
-    return gravity_torque;
+float voltageToTorque(float voltage) {
+    return voltage * VOLTAGE_TO_TORQUE_RATIO;
 }
 
-float torqueToVoltage(float torque) {
-    return torque / VOLTAGE_TO_TORQUE_RATIO;
+float calculateRequiredTorque(float angle) {
+    float torque = LOAD_MASS * GRAVITY * ARM_LENGTH * sin(angle);
+    float max_torque = max_torque; // [Nm] set the maximum torqu
+    return _constrain(torque, -max_torque/2, max_torque/2);  // Limit gravity compensation
 }
+
+float normalizeAngle(float angle) {
+    while(angle > 2*PI) angle -= 2*PI;
+    while(angle < -2*PI) angle += 2*PI;
+    return angle;
+}
+
 
 // torque set point variable
 float max_torque = 2.0; // maximum torque limit [Nm]
 float current_torque = 0.0; // current torque value
-float voltage_to_move = 0.0; // target angle value
+float target_angle = 0.0; // target angle value
 // instantiate the commander
 Commander command = Commander(Serial);
+<<<<<<< HEAD
 //void doTarget(char* cmd) { command.scalar(&target_angle, cmd); }
 void doMotor(char* cmd) { command.motor(&motor, cmd); }
+=======
+void doTarget(char* cmd) { command.scalar(&target_angle, cmd); }
+>>>>>>> parent of 6f594c6 (got gravity compensation working, added comments too)
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println("Starting gravity compensation setup...");
+
   // initialise magnetic sensor hardware
   sensor.init();
+<<<<<<< HEAD
   sensor.enableInterrupt(doPWM);
   motor.linkSensor(&sensor);
   Serial.print("Initial sensor angle: ");
+=======
+  Serial.print("Sensor angle: ");
+>>>>>>> parent of 6f594c6 (got gravity compensation working, added comments too)
   Serial.println(sensor.getAngle());
+  // link the motor to the sensor
+  motor.linkSensor(&sensor);
+
   // driver config
+  // power supply voltage [V]
   driver.voltage_power_supply = 12;
   driver.init();
+  // link the motor and the driver
   motor.linkDriver(&driver);
 
   // choose FOC modulation (optional)
-  //motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+  motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
 
   // set motion control loop to be used
-  motor.torque_controller = TorqueControlType::voltage; //changed to voltage control*
-  motor.controller = MotionControlType::torque; //changed to torque control*
+  motor.torque_controller = TorqueControlType::voltage;
+  motor.controller = MotionControlType::torque;
 
   // contoller configuration
   // default parameters in defaults.h
 
   // velocity PI controller parameters
+<<<<<<< HEAD
   motor.PID_velocity.P = 0.05f;
   motor.PID_velocity.I = 0.0f;
   motor.PID_velocity.D = 0.3f;
+=======
+  motor.PID_velocity.P = 0.01f;
+  motor.PID_velocity.I = 0.1f;
+  motor.PID_velocity.D = 0.0f;
+>>>>>>> parent of 6f594c6 (got gravity compensation working, added comments too)
   motor.PID_velocity.output_ramp = 1000; // acceleration [rad/s^2]
   //motor.LPF_velocity.Tf = 0.01; // filter for velocity
 
   // maximal voltage to be set to the motor
   motor.voltage_limit = 12;
-  
+
   // velocity low pass filtering time constant
   // the lower the less filtered
   //motor.LPF_velocity.Tf = 0.01f;
@@ -98,7 +126,7 @@ void setup() {
   // maximal velocity of the position control
   motor.velocity_limit = 20;
 
-  max_torque = VOLTAGE_TO_TORQUE_RATIO * motor.voltage_limit; // [Nm] set the maximum torque*
+  max_torque = VOLTAGE_TO_TORQUE_RATIO * motor.voltage_limit; // [Nm] set the maximum torque
 
   // use monitoring with serial
   Serial.begin(115200);
@@ -116,14 +144,20 @@ void setup() {
   motor.initFOC(); // set to false to skip the alignment if the zero_electric_angle is set
 
   // add target command T
+<<<<<<< HEAD
   //command.add('T', doTarget, "target angle");
   //motor.useMonitoring(Serial);
   
+=======
+  command.add('T', doTarget, "target angle");
+  motor.useMonitoring(Serial);
+
+>>>>>>> parent of 6f594c6 (got gravity compensation working, added comments too)
   Serial.println(F("Motor ready."));
   //Serial.println(F("Set the target angle using serial terminal:"));
   Serial.println("Starting...");
   _delay(1000);
-
+  
 }
 
 
@@ -135,11 +169,27 @@ void loop() {
   // Bluepill loop ~10kHz
   motor.loopFOC();
   
+<<<<<<< HEAD
   float current_angle = sensor.getAngle() - compensate_angle; // adjust this offset to set the "zero" position*
+=======
+  //Serial.println(current_torque);
+  // Motion control function
+  // velocity, position or voltage (defined in motor.controller)
+  // this function can be run at much lower frequency than loopFOC() function
+  // You can also use motor.move() and set the motor.target in the code
+  //motor.move(target_angle);
+
+
+  float current_angle = sensor.getAngle();
+  
+  // Calculate position error
+  float angle_error = _normalizeAngle(target_angle - current_angle);
+>>>>>>> parent of 6f594c6 (got gravity compensation working, added comments too)
   
   // Calculate gravity compensation torque
-  float gravity_torque = calculateGravityTorque(current_angle);
+  float gravity_torque = calculateRequiredTorque(current_angle);
   
+<<<<<<< HEAD
   // Calculate position error and correction torque
   float angle_error = current_angle - sensor.getAngle() - compensate_angle;
   
@@ -183,6 +233,24 @@ void loop() {
   Serial.print(", Damping_T: "); Serial.print(damping_torque, 4);
   Serial.print(", Total_T: "); Serial.print(total_torque, 4);
   Serial.print(", Voltage: "); Serial.println(voltage_to_move, 4);
+=======
+  // Calculate total torque (position correction + gravity compensation)
+  float position_torque = motor.P_angle.P * angle_error;
+  current_torque = position_torque + gravity_torque;
+  
+  // Limit the torque
+  current_torque = _constrain(current_torque, -max_torque, max_torque);
+  
+  // Apply torque
+  motor.move(current_torque);
+  
+
+  // function intended to be used with serial plotter to monitor motor variables
+  // significantly slowing the execution down!!!!
+  // motor.monitor();
+  Serial.print(current_torque);
+  //Serial.print(max_torque);
+>>>>>>> parent of 6f594c6 (got gravity compensation working, added comments too)
   // user communication
   //command.run();
 }

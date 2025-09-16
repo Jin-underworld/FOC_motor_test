@@ -23,10 +23,10 @@
 
 #elif SELECTED_BOARD == BOARD_ARDUINO_MEGA
     // Arduino Mega pins for BLDC driver
-    #define PIN_PWM_A 5
+    #define PIN_PWM_A 3
     #define PIN_PWM_B 4
-    #define PIN_PWM_C 3
-    #define PIN_ENABLE 22
+    #define PIN_PWM_C 5
+    #define PIN_ENABLE 23
 
     #define PIN_ENCODER 2   
     #define BAUD_RATE 74880 	

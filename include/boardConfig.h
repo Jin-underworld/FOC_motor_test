@@ -29,7 +29,7 @@
     #define PIN_ENABLE 23
 
     #define PIN_ENCODER 2   
-    #define BAUD_RATE 74880 	
+    #define BAUD_RATE 115200	
 
     //SPI PINS
     #define PIN_CS 53

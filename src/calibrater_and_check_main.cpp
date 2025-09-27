@@ -12,10 +12,13 @@
 #define motor_GB6010_R 10.28
 #define motor_GB6010_KV 16
 #define motor_GB6010_inductance 12.35e-3
-#define motor_GB6010_ZEAngle 5.77
+#define motor_GB6010_ZEAngle 0.014f
 #define motor_GB6010_sensor_direction Direction::CCW
-#define motor_GB6010_ZeroCalibratedAngle -1.893f
-#define motor_GB6010_HomeAngle 1.6f  // Define the home position angle (in radians)
+#define motor_GB6010_ZeroCalibratedAngle 1.9267f-2*M_PI //IMPT!!!! code minus this away. so for angle use angle as is when at 0 position. PI adjustment is to avoid negative angles
+#define motor_GB6010_HomeAngle 1.2f  // Define the home position angle (in radians)
+#define motor_6010_UPPER_LIMIT 1.6f
+#define motor_6010_LOWER_LIMIT 0.0f
+
 
 
 /**
@@ -153,45 +156,19 @@ BLDCDriver3PWM driver = BLDCDriver3PWM(8,10,12);//arduino uno
 //StepperDriver4PWM driver = StepperDriver4PWM(9, 5, 10, 6,  8);
 
 // angle set point variable
-float target_Angle = 0.0f; // target angle value
+float target_Angle = motor_GB6010_HomeAngle; // target angle value
 
 // instantiate the commander
 //PIDController pid = PIDController(10.0f,0.0f,0.0f,1000.0f,_PI); // 10,0,0
 Commander command = Commander(Serial);
 void doTarget(char* cmd) { command.scalar(&target_Angle, cmd); }
 
-//void onPid(char* cmd) { command.pid(&pid, cmd); }
-
-float augmented_angle = 0.0f;
-
-float getAugmentedAngle(float Actual_angle) {
-    augmented_angle = Actual_angle + motor_GB6010_ZeroCalibratedAngle;
-    // if (augmented_angle < 0) {
-    //     augmented_angle += 2 * M_PI; // Wrap around to [0, 2π]
-    // }
-    // else if (augmented_angle >= 2 * M_PI) {
-    //     augmented_angle -= 2 * M_PI; // Wrap around to [0, 2π]
-    // }
-    return augmented_angle;
-}
-
-float DisplayAngle(float Actual_angle) {
-    float display_angle = Actual_angle - motor_GB6010_ZeroCalibratedAngle;
-    // if (display_angle < 0) {
-    //     display_angle += 2 * M_PI; // Wrap around to [0, 2π]
-    // }
-    // else if (display_angle >= 2 * M_PI) {
-    //     display_angle -= 2 * M_PI; // Wrap around to [0, 2π]
-    // }
-    return display_angle;
-}
-
 bool checkstarting() {
   sensor.update();
-  float CurrentAngle = DisplayAngle(sensor.getAngle());
-  Serial.print("Current Angle: ");
+  float CurrentAngle = motor.shaftAngle();
+  Serial.print("Current Angle CHECKER: ");
   Serial.println(CurrentAngle);
-  if (CurrentAngle >= M_PI or CurrentAngle < M_PI/2) {
+  if (CurrentAngle >= motor_6010_UPPER_LIMIT or CurrentAngle < motor_6010_LOWER_LIMIT) {
     Serial.println("Error: Motor not in starting position. Please move the motor to the home position (0 radians).");
     return 1;
   }
@@ -203,9 +180,9 @@ bool checkstarting() {
 
 bool goToHomePosition(unsigned long timeout_ms = 5000) {
     unsigned long start_time = millis();
-    motor.target = getAugmentedAngle(motor_GB6010_HomeAngle);
+    motor.target =motor_GB6010_HomeAngle;
     
-    while (fabs(DisplayAngle(sensor.getAngle()) - DisplayAngle(motor_GB6010_HomeAngle) > 0.01f)){
+    while (fabs(motor.shaftAngle() - motor_GB6010_HomeAngle) > 0.01f){
         motor.loopFOC();
         motor.move();
         
@@ -218,7 +195,7 @@ bool goToHomePosition(unsigned long timeout_ms = 5000) {
         // Optional: Add progress feedback
         if (millis() % 500 == 0) {
             Serial.print("Homing... Current angle: ");
-            Serial.println(DisplayAngle(sensor.getAngle()));
+            Serial.println(motor.shaftAngle());
         }
     }
     return true;
@@ -245,8 +222,6 @@ void setup() {
 
 
   sensor.init();
-  Serial.print("Sensor angle: ");
-  Serial.println(DisplayAngle(sensor.getAngle()));
   // link the motor to the sensor
   motor.linkSensor(&sensor);
   // driver config
@@ -255,50 +230,46 @@ void setup() {
   driver.init();
   // link the motor and the driver
   motor.linkDriver(&driver);
-
   // choose FOC modulation (optional)
   motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
 
   // set motion control loop to be used
-  motor.controller = MotionControlType::velocity;
-
+  motor.controller = MotionControlType::angle; // angle, velocity, torque, velocity_openloop, angle_openloop
+  //motor.torque_controller = TorqueControlType::voltage; // voltage, dc_current, foc_current
   // contoller configuration
   // default parameters in defaults.h
 
-  // velocity PI controller parameters
+  //velocity PI controller parameters
   motor.PID_velocity.P = 0.5f;
-  motor.PID_velocity.I = 10.0f;
+  motor.PID_velocity.I = 3.2f;
   motor.PID_velocity.D = 0.0f;
-  motor.LPF_velocity.Tf = 0.01; // filter for velocity
+  motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
 
   // maximal voltage to be set to the motor IMPTTTT!!!
-  motor.voltage_limit = 5.0f; // [V]
-
-  // velocity low pass filtering time constant
-  // the lower the less filtered
-  // motor.LPF_velocity.Tf = 0.0f;
+  motor.voltage_limit = 12.0f; // [V]
+  
 
   // angle P controller
-  motor.P_angle.P = 10.0f;
-  motor.P_angle.I = 0.05f;
-  motor.P_angle.D = 0.0f;
-  motor.P_angle.output_ramp = 0.0f; // acceleration [rad/s^2
+  motor.P_angle.P = 4.0f;
+  motor.P_angle.I = 0.0f;
+  motor.P_angle.D = 5.2f;
+  motor.P_angle.output_ramp = 0.2f; // acceleration [rad/s^2
+  motor.LPF_angle.Tf = 0.12f; // filter for angle, needs to be around 0.1s
   // maximal velocity of the position control
-  motor.velocity_limit = 30.0f;
+  motor.velocity_limit = 20.0f;
 
   // use monitoring with serial
   Serial.begin(115200);
   // comment out if not needed
   motor.useMonitoring(Serial);
-  //motor.voltage_sensor_align = 2.0f; // voltage used for sensor alignment
-
+  motor.voltage_sensor_align = 4.0f; // voltage used for sensor alignment
 
   // initialize motor
   motor.init();
   // align sensor and start FOC
   motor.zero_electric_angle = motor_GB6010_ZEAngle; //  you can set it to a previously found value
   motor.sensor_direction = motor_GB6010_sensor_direction; // you can set this to a previously found value
-  //motor.sensor_offset = motor_GB6010_ZeroCalibratedAngle; // you can set this to a previously found value
+  motor.sensor_offset = motor_GB6010_ZeroCalibratedAngle; // you can set this to a previously found value
   motor.initFOC(); // set to false to skip the alignment if the zero_electric_angle is set
   // add target command T
   command.add('T', doTarget, "target angle");
@@ -319,32 +290,29 @@ void setup() {
   );
 
 
-  delay(1000);
-
-//   //Wait for button press with debounce
-//    Serial.println("Waiting for button press to start homing sequence...");
-//     while (!buttonPressed) {
-//         // Optional: Add watchdog or timeout
-//         sensor.update();
-//         Serial.print("Current Angle: ");
-//         Serial.println(sensor.getAngle());
-//         motor.monitor();
-//         delay(10); // Small delay to prevent tight loop
-//     }
+  //Wait for button press with debounce
+   Serial.println("Waiting for button press to start homing sequence...");
+    while (!buttonPressed) {
+        // Optional: Add watchdog or timeout
+        sensor.update();
+        Serial.print("Current Angle: ");
+        Serial.println(motor.shaftAngle());
+        delay(10); // Small delay to prevent tight loop
+    }
     
-//     // Update angle before checking
-//     sensor.update();
+    // Update angle before checking
+    sensor.update();
     
-//     if (checkstarting()) {
-//         Serial.println("Enter Error Loop: Motor not in starting position!");
-//         while(1); // Halt execution
-//     }
+    if (checkstarting()) {
+        Serial.println("Enter Error Loop: Motor not in starting position!");
+        while(1); // Halt execution
+    }
 
-//   // Execute homing sequence
+  // Execute homing sequence
   
-//   delay(1000);
-//   Serial.println("Starting homing sequence...");
-//     goToHomePosition();
+  delay(1000);
+  Serial.println("Starting homing sequence...");
+    goToHomePosition();
   
 }
 
@@ -364,15 +332,16 @@ void loop() {
   // velocity, position or voltage (defined in motor.controller)
   // this function can be run at much lower frequency than loopFOC() function
   // You can also use motor.move() and set the motor.target in the code
-  //motor.move(getAugmentedAngle(target_Angle));
   motor.move(target_Angle);
+  //motor.move(target_Angle);
   //Serial.print("Target Angle: "); Serial.println(target_Angle,3);
   //Serial.print("Angle: "); Serial.println(DisplayAngle(sensor.getAngle()),3);
-  //Serial.print("True Angle: "); Serial.println(sensor.getAngle(),3);
+  Serial.print("Motor shaft: "); Serial.println(motor.shaftAngle(),3);
+  //Serial.print("Sensor angle: "); Serial.println(sensor.getAngle(),3);
   // function intended to be used with serial plotter to monitor motor variables
   // significantly slowing the execution down!!!!
   //Serial.println(motor.shaftVelocity());
-  motor.monitor();
+  //motor.monitor();
   // user communication
   command.run();
 }

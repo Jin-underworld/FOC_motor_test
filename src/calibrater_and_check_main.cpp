@@ -16,9 +16,10 @@
 #define motor_GB6010_sensor_direction Direction::CCW
 #define motor_GB6010_ZeroCalibratedAngle 1.9267f-2*M_PI //IMPT!!!! code minus this away. so for angle use angle as is when at 0 position. PI adjustment is to avoid negative angles
 #define motor_GB6010_HomeAngle 1.2f  // Define the home position angle (in radians)
-#define motor_6010_UPPER_LIMIT 1.6f
-#define motor_6010_LOWER_LIMIT 0.0f
+#define motor_6010_UPPER_LIMIT 3.0f
+#define motor_6010_LOWER_LIMIT 0.72f
 
+#define BUTTON_PIN 3  // Pin connected to the button
 
 
 /**
@@ -202,18 +203,24 @@ bool goToHomePosition(unsigned long timeout_ms = 5000) {
 }
 
 // Must be volatile to share with ISR
-volatile bool buttonPressed = false;  
+volatile bool buttonPressed = false;
+volatile bool buttonState = false;
+volatile unsigned long pressStartTime = 0;
+volatile unsigned long lastDebounceTime = 0;
 const unsigned long DEBOUNCE_DELAY = 50; // milliseconds
+const unsigned long LONG_PRESS_DURATION = 1000;    // 1 second for long press
 
 void onButtonISR() {
-    static unsigned long lastInterruptTime = 0;
-    unsigned long interruptTime = millis();
-    if (interruptTime - lastInterruptTime > DEBOUNCE_DELAY) {
-        buttonPressed = true;
-        lastInterruptTime = interruptTime;
+    unsigned long currentTime = millis();
+    if (currentTime - lastDebounceTime > DEBOUNCE_DELAY) {
+        bool reading = (digitalRead(BUTTON_PIN) == LOW);
+        if (reading != buttonState) {
+            buttonState = reading;
+            buttonPressed = buttonState;
+            lastDebounceTime = currentTime;
+        }
     }
 }
-
 
 
 void setup() {
@@ -246,7 +253,7 @@ void setup() {
   motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
 
   // maximal voltage to be set to the motor IMPTTTT!!!
-  motor.voltage_limit = 12.0f; // [V]
+  motor.voltage_limit = 7.0f; // [V]
   
 
   // angle P controller
@@ -282,12 +289,13 @@ void setup() {
   Serial.println("Starting...waiting for button press to start homing sequence");
 
   // Configure pin and attach ISR on FALLING edge
-  pinMode(2, INPUT_PULLUP);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
   attachInterrupt(
-    digitalPinToInterrupt(2),
+    digitalPinToInterrupt(BUTTON_PIN),
     onButtonISR,
-    FALLING
+    CHANGE
   );
+  
 
 
   //Wait for button press with debounce
@@ -314,6 +322,8 @@ void setup() {
   Serial.println("Starting homing sequence...");
     goToHomePosition();
   
+  Serial.println("Homing sequence completed. Motor is at home position.");
+  buttonPressed = false; // Reset button press flag
 }
 
 
@@ -337,6 +347,10 @@ void loop() {
   //Serial.print("Target Angle: "); Serial.println(target_Angle,3);
   //Serial.print("Angle: "); Serial.println(DisplayAngle(sensor.getAngle()),3);
   Serial.print("Motor shaft: "); Serial.println(motor.shaftAngle(),3);
+  // if (buttonPressed) {
+  //   Serial.println("Button pressed");
+  // }
+
   //Serial.print("Sensor angle: "); Serial.println(sensor.getAngle(),3);
   // function intended to be used with serial plotter to monitor motor variables
   // significantly slowing the execution down!!!!
@@ -344,4 +358,28 @@ void loop() {
   //motor.monitor();
   // user communication
   command.run();
+
+
+  if (buttonPressed) {
+    delay(50); // Debounce delay
+    onButtonISR(); // Update button state
+    Serial.println("Button pressed! Entering error loop.");
+    motor.disable();
+
+    while (buttonPressed) {
+      // Wait for button release
+      delay(10);
+      Serial.print("press button again to exit error loop.");
+    }
+
+
+    Serial.println("Exiting error loop. Resuming operation.");
+    motor.enable();
+    sensor.update();
+    target_Angle = motor.shaftAngle(); // Set target to current position
+   
+    
+
+  }
+  
 }

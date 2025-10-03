@@ -1,4 +1,4 @@
-#define SELECTED_BOARD BOARD_ARDUINO_MEGA
+#define SELECTED_BOARD BOARD_STM32
 #include "boardConfig.h"
 
 #ifndef MAIN_CONFIG_H

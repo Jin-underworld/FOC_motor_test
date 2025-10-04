@@ -3,21 +3,25 @@
 //help me package this somewhere
 #define motor_GB4315_PP 14
 #define motor_GB4315_R 13.84
-#define motor_GB4315_ZEAngle 5.57
-#define motor_GB4315_sensor_direction Direction::CW
-#define motor_GB4315_ZeroCalibratedAngle -1.784f
-#define motor_GB4315_HomeAngle 1.6f  // Define the home position angle (in radians)
+#define motor_GB4315_KV 28
+#define motor_GB4315_inductance 6.45
+#define motor_GB4315_ZEAngle 5.56
+#define motor_GB4315_sensor_direction Direction::CCW
+#define motor_GB4315_ZeroCalibratedAngle -(1.49f+M_PI) 
+#define motor_GB4315_HomeAngle 3.6f  // Define the home position angle (in radians)
+#define motor_GB4315_UPPER_LIMIT 5.0f
+#define motor_GB4315_LOWER_LIMIT 2.3f
 
 #define motor_GB6010_PP 14
 #define motor_GB6010_R 10.28
 #define motor_GB6010_KV 16
 #define motor_GB6010_inductance 12.35e-3
-#define motor_GB6010_ZEAngle 0.014f
+#define motor_GB6010_ZEAngle 0.05f
 #define motor_GB6010_sensor_direction Direction::CCW
-#define motor_GB6010_ZeroCalibratedAngle 1.9267f-2*M_PI //IMPT!!!! code minus this away. so for angle use angle as is when at 0 position. PI adjustment is to avoid negative angles
+#define motor_GB6010_ZeroCalibratedAngle 2.97f-2*M_PI //IMPT!!!! code minus this away. so for angle use angle as is when at 0 position. PI adjustment is to avoid negative angles
 #define motor_GB6010_HomeAngle 1.2f  // Define the home position angle (in radians)
-#define motor_6010_UPPER_LIMIT 3.0f
-#define motor_6010_LOWER_LIMIT 0.72f
+#define motor_6010_UPPER_LIMIT 2.0f
+#define motor_6010_LOWER_LIMIT -0.5f
 
 #define BUTTON_PIN 3  // Pin connected to the button
 
@@ -150,14 +154,14 @@ MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
 //FilteredSensor filteredSensor = FilteredSensor(sensor);
 
 // BLDC motor & driver instance
-BLDCMotor motor = BLDCMotor(motor_GB6010_PP, motor_GB6010_R, motor_GB6010_KV, motor_GB6010_inductance);
+BLDCMotor motor = BLDCMotor(motor_GB4315_PP, motor_GB4315_R, motor_GB4315_KV, motor_GB4315_inductance);
 BLDCDriver3PWM driver = BLDCDriver3PWM(8,10,12);//arduino uno
 // Stepper motor & driver instance
 //StepperMotor motor = StepperMotor(50);
 //StepperDriver4PWM driver = StepperDriver4PWM(9, 5, 10, 6,  8);
 
 // angle set point variable
-float target_Angle = motor_GB6010_HomeAngle; // target angle value
+float target_Angle = motor_GB4315_HomeAngle; // target angle value
 
 // instantiate the commander
 //PIDController pid = PIDController(10.0f,0.0f,0.0f,1000.0f,_PI); // 10,0,0
@@ -169,7 +173,7 @@ bool checkstarting() {
   float CurrentAngle = motor.shaftAngle();
   Serial.print("Current Angle CHECKER: ");
   Serial.println(CurrentAngle);
-  if (CurrentAngle >= motor_6010_UPPER_LIMIT or CurrentAngle < motor_6010_LOWER_LIMIT) {
+  if (CurrentAngle >= motor_GB4315_UPPER_LIMIT or CurrentAngle < motor_GB4315_LOWER_LIMIT) {
     Serial.println("Error: Motor not in starting position. Please move the motor to the home position (0 radians).");
     return 1;
   }
@@ -181,9 +185,9 @@ bool checkstarting() {
 
 bool goToHomePosition(unsigned long timeout_ms = 5000) {
     unsigned long start_time = millis();
-    motor.target =motor_GB6010_HomeAngle;
+    motor.target =motor_GB4315_HomeAngle;
     
-    while (fabs(motor.shaftAngle() - motor_GB6010_HomeAngle) > 0.01f){
+    while (fabs(motor.shaftAngle() - motor_GB4315_HomeAngle) > 0.01f){
         motor.loopFOC();
         motor.move();
         
@@ -274,9 +278,9 @@ void setup() {
   // initialize motor
   motor.init();
   // align sensor and start FOC
-  motor.zero_electric_angle = motor_GB6010_ZEAngle; //  you can set it to a previously found value
-  motor.sensor_direction = motor_GB6010_sensor_direction; // you can set this to a previously found value
-  motor.sensor_offset = motor_GB6010_ZeroCalibratedAngle; // you can set this to a previously found value
+  motor.zero_electric_angle = motor_GB4315_ZEAngle; //  you can set it to a previously found value
+  motor.sensor_direction = motor_GB4315_sensor_direction; // you can set this to a previously found value
+  motor.sensor_offset = motor_GB4315_ZeroCalibratedAngle; // you can set this to a previously found value
   motor.initFOC(); // set to false to skip the alignment if the zero_electric_angle is set
   // add target command T
   command.add('T', doTarget, "target angle");

@@ -10,36 +10,41 @@
 #define GRAVITY 9.81f      // m/s^2
 #define VOLTAGE_TO_TORQUE_RATIO 2.13f  // TUNED [Nm/V]
 
+//Motor driver configuration
+#define driver_voltage_supply 24.0f
+
+#define BUTTON_PIN PA0
+
 // Motor configuration 4315
-#define MOTOR_POLE_PAIRS 14 
-#define MOTOR_PHASE_RESISTANCE 13.84f
-#define MOTOR_TORQUE_CONSTANT 0.00047f
-#define MOTOR_PHASE_INDUCTANCE 0.0645f
-#define MOTOR_VOLTAGE_LIMIT 12.0f
-#define MOTOR_PID_VELOCITY_P 0.5f
-#define MOTOR_PID_VELOCITY_I 0.0f
-#define MOTOR_PID_VELOCITY_D 0.0f
-#define MOTOR_PID_VELOCITY_RAMP 1000.0f
-#define MOTOR_PID_VELOCITY_LIMIT 5.0f
+#define motor_GB4315_PWM_A PC8 //IN1
+#define motor_GB4315_PWM_B PC7 //In2
+#define motor_GB4315_PWM_C PC6  //IN3
+#define motor_GB4315_PP 14
+#define motor_GB4315_R 13.84
+#define motor_GB4315_KV 28
+#define motor_GB4315_inductance 6.45
+#define motor_GB4315_ZEAngle 5.66
+#define motor_GB4315_sensor_direction Direction::CCW
+#define motor_GB4315_ZeroCalibratedAngle -6.06f - M_PI
+#define motor_GB4315_HomeAngle 4.0f  // Define the home position angle (in radians)
+#define motor_GB4315_UPPER_LIMIT 4.96f
+#define motor_GB4315_LOWER_LIMIT 1.0f
 
 
 // // Motor configuration
-// #define MOTOR_POLE_PAIRS 14 
-// #define MOTOR_PHASE_RESISTANCE 10.28f
-// #define MOTOR_TORQUE_CONSTANT 4.2f
-// #define MOTOR_PHASE_INDUCTANCE 0.123f
-// #define MOTOR_VOLTAGE_LIMIT 12.0f
-// #define MOTOR_PID_VELOCITY_P 0.1f
-// #define MOTOR_PID_VELOCITY_I 0.0f
-// #define MOTOR_PID_VELOCITY_D 0.0f
-// #define MOTOR_PID_VELOCITY_RAMP 1000.0f
-// #define MOTOR_PID_VELOCITY_LIMIT 5.0f
-
-#define MOTOR_P_ANGLE 2.0f
-#define MOTOR_VELOCITY_LIMIT 20.0f
-#define MOTOR_ZERO_ELECTRIC_ANGLE 1.30f
-#define MOTOR_SENSOR_DIRECTION CW
-#define MOTOR_ANGLE_OFFSET 2.54f  // Offset for "zero" position
+#define motor_GB6010_PWM_A PE13 //IN1
+#define motor_GB6010_PWM_B PE11 //In2
+#define motor_GB6010_PWM_C PE9  //IN3
+#define motor_GB6010_PP 14
+#define motor_GB6010_R 10.28
+#define motor_GB6010_KV 16
+#define motor_GB6010_inductance 12.35e-3
+#define motor_GB6010_ZEAngle 6.11f
+#define motor_GB6010_sensor_direction Direction::CCW
+#define motor_GB6010_ZeroCalibratedAngle -2.94f //IMPT!!!! code minus this away. so for angle use angle as is when at 0 position. PI adjustment is to avoid negative angles
+#define motor_GB6010_HomeAngle 1.0f  // Define the home position angle (in radians)
+#define motor_GB6010_UPPER_LIMIT 1.585f
+#define motor_GB6010_LOWER_LIMIT -0.87f
 
 // Position control parameters
 #define POSITION_GAIN 0.5f

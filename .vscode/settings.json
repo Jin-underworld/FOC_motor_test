@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "stm32freertos.h": "c"
+        "stm32freertos.h": "c",
+        "cmath": "cpp"
     }
 }

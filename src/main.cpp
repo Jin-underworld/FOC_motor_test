@@ -1,47 +1,8 @@
 #include "main.h"
 #include <Arduino.h>
 #include <SimpleFOC.h>
-
-#include "DFRobot_I2C_Multiplexer.h"
-TwoWire Wire2(PB11, PB10);
-DFRobot_I2C_Multiplexer multiplexer(&Wire2, 0x70);
-// Custom class that wraps MagneticSensorI2C to work with I2C multiplexer
-class MultiplexedMagneticSensorI2C : public MagneticSensorI2C {
-public:
-  MultiplexedMagneticSensorI2C(DFRobot_I2C_Multiplexer *_multiplexer,
-                               uint8_t _port, MagneticSensorI2CConfig_s _config)
-      : MagneticSensorI2C(_config), multiplexer(_multiplexer), port(_port) {}
-
-  // Override the getSensorAngle method to select the correct port before
-  // reading
-  float getSensorAngle() override {
-    multiplexer->selectPort(port);
-    return MagneticSensorI2C::getSensorAngle();
-  }
-
-  // Override update method if needed
-  void update() override {
-    multiplexer->selectPort(port);
-    MagneticSensorI2C::update();
-  }
-
-private:
-  DFRobot_I2C_Multiplexer *multiplexer;
-  uint8_t port;
-};
-
-MultiplexedMagneticSensorI2C sensor1(&multiplexer, 0, AS5600_I2C);
-MultiplexedMagneticSensorI2C sensor2(&multiplexer, 1, AS5600_I2C);
-MultiplexedMagneticSensorI2C sensor3(&multiplexer, 2, AS5600_I2C);
-MultiplexedMagneticSensorI2C sensor4(&multiplexer, 3, AS5600_I2C);
-MultiplexedMagneticSensorI2C sensor5(&multiplexer, 4, AS5600_I2C);
-MultiplexedMagneticSensorI2C sensor6(&multiplexer, 5, AS5600_I2C);
-
-// BLDC motor & driver instance
-// BLDCMotor motor = BLDCMotor(MOTOR_POLE_PAIRS, MOTOR_PHASE_RESISTANCE,
-//                             MOTOR_TORQUE_CONSTANT, MOTOR_PHASE_INDUCTANCE);
-// BLDCDriver3PWM driver =
-//     BLDCDriver3PWM(PIN_PWM_A, PIN_PWM_B, PIN_PWM_C, PIN_ENABLE);
+#include "motor_helper.h"
+#include "sensor_helper.h"
 
 Commander command = Commander(Serial);
 //void doMotor(char *cmd) { command.motor(&GB4315motor, cmd); }
@@ -96,66 +57,6 @@ LowPassFilter target_filter = LowPassFilter(0.005); // 5ms for smooth target
 
 ControlState state;
 
-struct MotorConfig {
-  BLDCMotor* motor;
-  MagneticSensorI2C* sensor;  // Make sensor configurable too
-  float upper_limit;
-  float lower_limit;
-  float home_angle;
-  const char* name;
-};
-
-//setup for motor control
-BLDCMotor GB6010motor = BLDCMotor(motor_GB6010_PP, motor_GB6010_R, motor_GB6010_KV, motor_GB6010_inductance);
-BLDCDriver3PWM GB6010driver = BLDCDriver3PWM(motor_GB6010_PWM_A,motor_GB6010_PWM_B,motor_GB6010_PWM_C);
-BLDCMotor GB4315motor = BLDCMotor(motor_GB4315_PP, motor_GB4315_R, motor_GB4315_KV, motor_GB4315_inductance);
-BLDCDriver3PWM GB4315driver = BLDCDriver3PWM(motor_GB4315_PWM_A, motor_GB4315_PWM_B, motor_GB4315_PWM_C);
-
-float target_Angle_1 = motor_GB6010_HomeAngle;
-float target_Angle_2 = motor_GB4315_HomeAngle;
-
-void doTarget(char* cmd) { command.scalar(&target_Angle_1, cmd); }
-
-//setup for button interrupt
-bool checkstarting(const MotorConfig& config) {
-  config.sensor->update();
-  float CurrentAngle = config.motor->shaftAngle();
-  Serial.print("Current Angle CHECKER: ");
-  Serial.println(CurrentAngle);
-  if (CurrentAngle >= config.upper_limit or CurrentAngle < config.lower_limit) {
-    Serial.println("Error: Motor not in starting position. Please move the motor to the home position (0 radians).");
-    return 1;
-  }
-  else {
-    Serial.println("Motor in starting position. Proceeding with homing sequence.");
-    return 0;
-  }
-}
-
-bool goToHomePosition(const MotorConfig& config, unsigned long timeout_ms = 5000) {
-    unsigned long start_time = millis();
-    config.motor->target = config.home_angle;
-    
-    Serial.println("homing");
-    Serial.println(config.name);
-    while (fabs(config.motor->shaftAngle() - config.home_angle) > 0.01f){
-        config.motor->loopFOC();
-        config.motor->move();
-        
-        // Add timeout
-        if (millis() - start_time > timeout_ms) {
-            Serial.println("Homing sequence timed out!");
-            return false;
-        }
-        
-        // Optional: Add progress feedback
-        if (millis() % 500 == 0) {
-            Serial.print("Homing... Current angle: ");
-            Serial.println(config.motor->shaftAngle());
-        }
-    }
-    return true;
-}
 
 
 #define BUTTON_PIN GPIO_PIN_0
@@ -184,10 +85,9 @@ extern "C" void __attribute__((weak)) HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 }
 
 
+
 void setup() {
   
-  // pinMode(BUTTON_PIN, INPUT_PULLUP);
-  // attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), onButtonISR, FALLING);
 
   // Enable GPIOA clock
   __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -196,6 +96,7 @@ void setup() {
   __HAL_RCC_SYSCFG_CLK_ENABLE();
   
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+
   
   // Configure GPIO pin
   GPIO_InitStruct.Pin = BUTTON_PIN;
@@ -207,98 +108,27 @@ void setup() {
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
-  MotorConfig gb6010_config = {
-  &GB6010motor, 
-  &sensor2, 
-  motor_GB6010_UPPER_LIMIT, 
-  motor_GB6010_LOWER_LIMIT, 
-  motor_GB6010_HomeAngle,
-  "GB6010"
-};
-
-  MotorConfig gb4315_config = {
-  &GB4315motor, 
-  &sensor3, 
-  motor_GB4315_UPPER_LIMIT, 
-  motor_GB4315_LOWER_LIMIT, 
-  motor_GB4315_HomeAngle,
-  "GB4315"
-};
 
 
   Serial.begin(BAUD_RATE);
   Serial.println("Hi");
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
-  Wire2.begin();
-  Serial.println("bruh");
-  multiplexer.begin();
-  Serial.println("I2C Multiplexer initialized");
+  initializeSensors();
+
   SimpleFOCDebug::enable(&Serial);
-  // // Initialize sensor
-  sensor1.init(&Wire2);
-  sensor2.init(&Wire2);
-  sensor3.init(&Wire2);
-  // sensor4.init();
-  // sensor5.init();
-  // sensor6.init();
-  // Serial.println("how can");
-  GB6010motor.linkSensor(&sensor2);
-  GB4315motor.linkSensor(&sensor3);
-
-
-  // Initialize driver
-  GB4315driver.voltage_power_supply = driver_voltage_supply;
-  GB4315driver.init();
-  GB4315driver.pwm_frequency = 30000;
-  GB4315motor.linkDriver(&GB4315driver);
-  GB4315motor.controller = MotionControlType::angle;
-  GB4315motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
-
-  GB6010driver.voltage_power_supply = driver_voltage_supply;
-  GB6010driver.init();
-  GB6010driver.pwm_frequency = 30000;
-  GB6010motor.linkDriver(&GB6010driver);
-  GB6010motor.controller = MotionControlType::angle;
-  GB6010motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
-
-  // angle P controller
-  GB6010motor.P_angle.P = 4.0f;
-  GB6010motor.P_angle.I = 0.0f;
-  GB6010motor.P_angle.D = 5.2f;
-  GB6010motor.P_angle.output_ramp = 0.2f; // acceleration [rad/s^2
-  GB6010motor.LPF_angle.Tf = 0.12f; // filter for angle, needs to be around 0.1s
-  GB6010motor.velocity_limit = 20.0f;
   
-  GB4315motor.P_angle.P = 4.0f;
-  GB4315motor.P_angle.I = 0.0f;
-  GB4315motor.P_angle.D = 5.2f;
-  GB4315motor.P_angle.output_ramp = 0.2f;
-  GB4315motor.LPF_angle.Tf = 0.12f;
-  GB4315motor.velocity_limit = 20.0f;
-
-
-  // motor.controller = MotionControlType::velocity;
-
-  // Initialize motor
-  GB6010motor.init();
-  GB6010motor.zero_electric_angle = motor_GB6010_ZEAngle; //  you can set it to a previously found value
-  GB6010motor.sensor_direction = motor_GB6010_sensor_direction; // you can set this to a previously found value
-  GB6010motor.sensor_offset = motor_GB6010_ZeroCalibratedAngle; // you can set this to a previously found value
-  GB6010motor.initFOC();
-  GB6010motor.voltage_limit = 7.0f;
-  GB6010motor.voltage_sensor_align = 4.0f;                      
+  //initialise sensors
+  initializeI2CMultiplexer();
+  initializeSensors();
+  SimpleFOCDebug::enable(&Serial);
   
-  GB4315motor.init();
-  GB4315motor.zero_electric_angle = motor_GB4315_ZEAngle;
-  GB4315motor.sensor_direction = motor_GB4315_sensor_direction;
-  GB4315motor.sensor_offset = motor_GB4315_ZeroCalibratedAngle;
-  GB4315motor.initFOC();
-  GB4315motor.voltage_limit = 7.0f;
-  GB4315motor.voltage_sensor_align = 3.0f;
-
-  
-  
+  //initialise motors
+  linkMotorsToSensors();
+  initializeMotorDrivers();
+  initializeMotorControllers();
+  initializeMotorParameters();
+  initializeMotors();
 
   //command.add('M',doMotor,"motor");
   command.add('T', doTarget, "target angle");
@@ -309,9 +139,11 @@ void setup() {
   while (!buttonPressed) {
     // Optional: Add watchdog or timeout
     ButtonChecker();
+    sensor2.update();
     sensor3.update();
     Serial.print("Current Angle: ");
     Serial.println(GB4315motor.shaftAngle());
+    Serial.println(GB6010motor.shaftAngle());
     delay(10); // Small delay to prevent tight loop
   }
   
@@ -339,7 +171,6 @@ void setup() {
   Serial.println("Homing sequence completed. Motor is at home position.");
   ButtonReset(); // Reset button press flag
 
-  _delay(1000);
 }
 
 // // Function to receive parameter updates via Serial

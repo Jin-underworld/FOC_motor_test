@@ -1,0 +1,115 @@
+[33mcommit c656797ac33501f120a920f961a4e3f454c89fb1[m[33m ([m[1;36mHEAD -> [m[1;32mfix/mux[m[33m, [m[1;31morigin/fix/mux[m[33m)[m
+Author: werk <e1121562@u.nus.edu>
+Date:   Mon Oct 13 02:33:16 2025 +0700
+
+    chore: refactor code. added motor_helper and sensor_helper, verified working.
+
+[33mcommit d19586ee1703b45e0a6735b2d7b142d2cbfff527[m
+Author: werk <e1121562@u.nus.edu>
+Date:   Fri Oct 10 02:16:06 2025 +0700
+
+    feat: sensors implemented using mux, base_joint motor, joint 1 and 2 confirmed to work. TODO: at link 1 60 deg from horizontal, and link 2 45 degree from link 1, the offset length at joint 3 will be horizontal to the ground. at this position, all encoders should read 0. this way, i can implement my FK from DH table
+
+[33mcommit 5fa096fe0eb040e6d10eb8eab507ab9eb7985ed1[m
+Author: yijiano <zhangyijian2002@gmail.com>
+Date:   Sat Oct 4 19:10:18 2025 +0800
+
+    Fix i2c part 2
+
+[33mcommit e163d535c2159506bbebaf42fb9f220dd94c4dc1[m
+Author: yijiano <zhangyijian2002@gmail.com>
+Date:   Sat Oct 4 19:09:53 2025 +0800
+
+    Fix i2c
+
+[33mcommit 0e2dda8b010c53eb1aa3d9c2caf25d496dc4e6e0[m[33m ([m[1;31morigin/rtos_usb[m[33m, [m[1;32mrtos_usb[m[33m)[m
+Author: werk <e1121562@u.nus.edu>
+Date:   Sat Oct 4 00:09:57 2025 +0700
+
+     a bunch of troler files are aded to test for serial prins. this is because i cant seem to get any prints. it seems that sensor.init() is causing the freeze. inspection shows that a wire->begin() is being called.iirc, its a blocking function? nonetheless i cant seem to connect to my i2c mux
+
+[33mcommit 40cb9e04e25e466de8a6a65bbec8033dceaa1a2e[m
+Author: CharlyNUS <e1155541@u.nus.edu>
+Date:   Tue Sep 23 22:59:11 2025 +0800
+
+    Create usb.c
+
+[33mcommit 85f983ef782ee962f1d32608d1663035a9a867ce[m
+Author: CharlyNUS <e1155541@u.nus.edu>
+Date:   Tue Sep 23 22:58:07 2025 +0800
+
+    Create rtos.c
+    
+    rtos code
+
+[33mcommit d72b76e2287c5721c8582995c109ad6b4a7310e2[m[33m ([m[1;31morigin/refactoringLibraries[m[33m, [m[1;32mrefactoringLibraries[m[33m)[m
+Author: werk <e1121562@u.nus.edu>
+Date:   Tue Sep 23 22:45:38 2025 +0700
+
+     feat: tested dfrobot i2c multiplexer. it works, can read from individual i2c sources, and used simpleFOC's magneticencoderi2C library. TODO: make into a dedicated library
+
+[33mcommit 737025800d4a84bc5f0e396112fdeebc58646b03[m
+Author: werk <e1121562@u.nus.edu>
+Date:   Tue Sep 16 23:29:44 2025 +0700
+
+    for in to copy paste the filter code
+
+[33mcommit e76de8414d6e1f9d0a26330beaa80022bce8177b[m[33m ([m[1;32mlist[m[33m)[m
+Author: werk <e1121562@u.nus.edu>
+Date:   Tue Sep 16 21:23:26 2025 +0700
+
+     i will be looking at Jin's code an modifying from there
+
+[33mcommit 3c48cb41d8cd3de9e9bd072d33537dea122f1753[m
+Author: Cadastrophi <e1121562@u.nus.edu>
+Date:   Mon Sep 15 14:19:46 2025 +0800
+
+    chore: able to select board from main.h
+
+[33mcommit be857ee8233e19145f0b715e71d5d61ff1895d0d[m
+Author: werk <e1121562@u.nus.edu>
+Date:   Sat Sep 13 00:16:23 2025 +0700
+
+    commintg before i forgot -- YOU NEED THE ENABLE PIN OR THE MOTOR WONT MOVE git add .git add .. TODO: position homing code
+
+[33mcommit aa68ac6e4f5cb9332add3ab0ec3784e703617e63[m
+Author: werk <e1121562@u.nus.edu>
+Date:   Fri Sep 12 01:43:00 2025 +0700
+
+    feat: encoder values can be read and is realtively stable with deviation sof about 0.05, and it seems the gravity torque is quite reactive to the encoder changes, along with the torque. all of this is just from serial printing. TODO: the current issue seems to be that when the motor is uploaded, the encoder value is not absolute anymore. hence, a homing sequence is required. for now, i cant even seem to spin the motor. ill look into just simply spinnign motor via FOC.
+
+[33mcommit dcff1d6424af5036f082463ca767963a5fab2234[m
+Author: Cadastrophi <e1121562@u.nus.edu>
+Date:   Sat Aug 30 04:46:42 2025 +0800
+
+    fix: shifted config files to the includde dir. for include dir stuff, use #include something.h, while for those in lib, it is angled brackets #include<simpleFOC.h>
+
+[33mcommit e2b454ae33e37da746d04140928cf06bf4083b0d[m
+Author: Cadastrophi <e1121562@u.nus.edu>
+Date:   Fri Aug 29 03:08:15 2025 +0800
+
+    feat: configSettings, for Charly to work on. i get that it looks rather convoluted and messy. if this isif this is a bad idea, we can git revert to the commit before this commit.
+
+[33mcommit d5ff2f10dd51a81abf6475262d942c42993edec0[m
+Author: Cadastrophi <e1121562@u.nus.edu>
+Date:   Fri Aug 29 03:00:39 2025 +0800
+
+    feat: deleted the old torquetesting.cpp, and just placed it into main.cpp. added a main.h header in the include directory  that is used to adjust the pid values, arm lenths etc. it will be in the configSettings directory in the future when i get it to work. | chore: instead of using the PIO curated library for simpleFOC, i added the simpleFOC as a submodule directly off their GH page.
+
+[33mcommit 4cf0f9bf13105e056c5efe5a0f2bd094afbc9ba5[m
+Author: Cadastrophi <e1121562@u.nus.edu>
+Date:   Fri Aug 29 02:57:31 2025 +0800
+
+    feat: shifted motorControl logic into a seperate library called motorControl, that is found in the lib dir. i actually have prepared a configSettings directory, that included boardConfig.h, encoderConfig.h (for diff encoders), motorConfig.h (for the diff torque values/ pid values of the 5 diff type of motors we using). | this can compile, but havent test since idh the bldc. jin please test if this works, and just iterate as you see fit
+
+[33mcommit 6f594c65213b994a075f6abbc0a7643e26d8931b[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m
+Author: Jin-underworld <kongjinyu4567@gmail.com>
+Date:   Thu Aug 28 15:59:57 2025 +0800
+
+    got gravity compensation working, added comments too
+
+[33mcommit 1b025ba55fcb7971bcc3d3bd077085efee5f657c[m
+Author: Jin-underworld <kongjinyu4567@gmail.com>
+Date:   Tue Aug 26 21:33:54 2025 +0800
+
+    first commit

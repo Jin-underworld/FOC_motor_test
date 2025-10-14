@@ -1,116 +1,49 @@
 #pragma once
-#ifndef MOTOR_CONFIG_HPP
-#define MOTOR_CONFIG_HPP
 
-#include <SimpleFOC.h>
+// Motor configuration 6025
+#define motor_GB6025_PWM_IN1 PB8 //IN1 TIMER 4 on F4dsicovery
+#define motor_GB6025_PWM_IN2 PB7 //IN2
+#define motor_GB6025_PWM_IN3 PB6  //IN3
+#define motor_GB6025_EN PB9
+#define motor_GB6025_PP 14
+#define motor_GB6025_R 3.35
+#define motor_GB6025_KV 20
+#define motor_GB6025_inductance 3.73e-3
+#define motor_GB6025_ZEAngle 4.27f//tune
+#define motor_GB6025_sensor_direction Direction::CCW //tune
+#define motor_GB6025_ZeroCalibratedAngle -5.82f //IMPT!!!! code minus this away. so for angle use angle as is when at 0 position. PI adjustment is to avoid negative angles
+#define motor_GB6025_HomeAngle 0.0f  // Define the home position angle (in radians)
+#define motor_GB6025_UPPER_LIMIT 0.785f
+#define motor_GB6025_LOWER_LIMIT -0.785f
 
-// Motor type enumeration
-enum class MotorType {
-    GB2806,
-    GB3510,
-    GB4315,
-    GB6010,
-    GB6025,
-    NONE  // For joints without motors
-};
+// // Motor configuration 6010
+#define motor_GB6010_PWM_IN1 PE13 //IN1 on FOC board TIMER 1 on F4discovery
+#define motor_GB6010_PWM_IN2 PE11 //IN2
+#define motor_GB6010_PWM_IN3 PE9 //IN3
+#define motor_GB6010_EN PE7
+#define motor_GB6010_PP 14
+#define motor_GB6010_R 10.28
+#define motor_GB6010_KV 16
+#define motor_GB6010_inductance 12.35e-3
+#define motor_GB6010_ZEAngle 6.11f
+#define motor_GB6010_sensor_direction Direction::CCW
+#define motor_GB6010_ZeroCalibratedAngle -2.94f + M_PI/3 // 60 degree initialIMPT!!!! code minus this away. so for angle use angle as is when at 0 position. PI adjustment is to avoid negative angles
+#define motor_GB6010_HomeAngle 0.0f  // Define the home position angle (in radians)
+#define motor_GB6010_UPPER_LIMIT 0.537f - 0.001f
+#define motor_GB6010_LOWER_LIMIT -(1.075f - 0.001f) 
 
-// Motor configuration struct
-struct MotorConfig {
-    int polePairs;
-    float phaseResistance;
-    float voltageLimit;
-    float voltageToTorqueRatio;
-    float pidVelocityP;
-    float pidVelocityI;
-    float pidVelocityD;
-    float velocityRamp;
-    float pAngle;
-    float velocityLimit;
-    float zeroElectricAngle;
-    Direction sensorDirection;
-};
-
-// Default motor configurations
-namespace DefaultMotors {
-    constexpr MotorConfig GB2806 = {
-        .polePairs = 7,
-        .phaseResistance = 3.0f,
-        .voltageLimit = 12.0f,
-        .voltageToTorqueRatio = 0.018870f,
-        .pidVelocityP = 0.01f,
-        .pidVelocityI = 0.1f,
-        .pidVelocityD = 0.0f,
-        .velocityRamp = 1000.0f,
-        .pAngle = 2.0f,
-        .velocityLimit = 20.0f,
-        .zeroElectricAngle = 2.21f,
-        .sensorDirection = Direction::CCW
-    };
-
-    constexpr MotorConfig GB3510 = {
-        .polePairs = 10,
-        .phaseResistance = 2.5f,
-        .voltageLimit = 12.0f,
-        .voltageToTorqueRatio = 0.022f,
-        .pidVelocityP = 0.015f,
-        .pidVelocityI = 0.12f,
-        .pidVelocityD = 0.0f,
-        .velocityRamp = 1200.0f,
-        .pAngle = 2.2f,
-        .velocityLimit = 22.0f,
-        .zeroElectricAngle = 2.3f,
-        .sensorDirection = Direction::CCW
-    };
-
-    constexpr MotorConfig GB4315 = {
-        .polePairs = 12,
-        .phaseResistance = 2.0f,
-        .voltageLimit = 24.0f,
-        .voltageToTorqueRatio = 0.03f,
-        .pidVelocityP = 0.02f,
-        .pidVelocityI = 0.15f,
-        .pidVelocityD = 0.001f,
-        .velocityRamp = 1500.0f,
-        .pAngle = 2.5f,
-        .velocityLimit = 25.0f,
-        .zeroElectricAngle = 2.4f,
-        .sensorDirection = Direction::CCW
-    };
-
-    constexpr MotorConfig GB6010 = {
-        .polePairs = 14,
-        .phaseResistance = 1.5f,
-        .voltageLimit = 24.0f,
-        .voltageToTorqueRatio = 0.035f,
-        .pidVelocityP = 0.025f,
-        .pidVelocityI = 0.18f,
-        .pidVelocityD = 0.001f,
-        .velocityRamp = 1800.0f,
-        .pAngle = 2.8f,
-        .velocityLimit = 30.0f,
-        .zeroElectricAngle = 2.5f,
-        .sensorDirection = Direction::CCW
-    };
-
-    constexpr MotorConfig GB6025 = {
-        .polePairs = 16,
-        .phaseResistance = 1.2f,
-        .voltageLimit = 24.0f,
-        .voltageToTorqueRatio = 0.04f,
-        .pidVelocityP = 0.03f,
-        .pidVelocityI = 0.2f,
-        .pidVelocityD = 0.001f,
-        .velocityRamp = 2000.0f,
-        .pAngle = 3.0f,
-        .velocityLimit = 35.0f,
-        .zeroElectricAngle = 2.6f,
-        .sensorDirection = Direction::CCW
-    };
-}
-
-// Physical parameters
-constexpr float ARM_LENGTH = 0.1f;    // 100mm = 0.1m
-constexpr float LOAD_MASS = 0.02f;    // 20g = 0.02kg
-constexpr float GRAVITY = 9.81f;      // m/s^2
-
-#endif // MOTOR_CONFIG_HPP
+// Motor configuration 4315
+#define motor_GB4315_PWM_IN1 PC9 //IN1 TIMER 3 on F4 discovery
+#define motor_GB4315_PWM_IN2 PC8 //IN2
+#define motor_GB4315_PWM_IN3 PC6  //IN3
+#define motor_GB4315_EN PC11
+#define motor_GB4315_PP 14
+#define motor_GB4315_R 13.84
+#define motor_GB4315_KV 28
+#define motor_GB4315_inductance 6.45e-3
+#define motor_GB4315_ZEAngle 4.02f
+#define motor_GB4315_sensor_direction Direction::CCW
+#define motor_GB4315_ZeroCalibratedAngle -4.331f + 2.134f + 2.335f
+#define motor_GB4315_HomeAngle 0.0f  // Define the home position angle (in radians)
+#define motor_GB4315_UPPER_LIMIT 0.69f
+#define motor_GB4315_LOWER_LIMIT -1.69f

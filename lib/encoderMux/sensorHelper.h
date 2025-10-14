@@ -27,12 +27,12 @@ private:
 };
 
 // Sensor instances declarations
+extern MultiplexedMagneticSensorI2C sensor0;
 extern MultiplexedMagneticSensorI2C sensor1;
 extern MultiplexedMagneticSensorI2C sensor2;
 extern MultiplexedMagneticSensorI2C sensor3;
 extern MultiplexedMagneticSensorI2C sensor4;
 extern MultiplexedMagneticSensorI2C sensor5;
-extern MultiplexedMagneticSensorI2C sensor6;
 
 // Function declarations
 void initializeI2CMultiplexer();

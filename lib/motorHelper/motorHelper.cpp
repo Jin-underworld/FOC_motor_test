@@ -1,21 +1,35 @@
-#include "motor_helper.h"
-#include "sensor_helper.h"
-# include "main.h"
+#include "motorHelper.h"
+#include "sensorHelper.h"
 
 // Motor and driver definitions
+
+BLDCMotor GB6025motor = BLDCMotor(motor_GB6025_PP, motor_GB6025_R, motor_GB6025_KV, motor_GB6025_inductance);
+BLDCDriver3PWM GB6025driver = BLDCDriver3PWM(motor_GB6025_PWM_IN1, motor_GB6025_PWM_IN2, motor_GB6025_PWM_IN3, motor_GB6025_EN);
+
 BLDCMotor GB6010motor = BLDCMotor(motor_GB6010_PP, motor_GB6010_R, motor_GB6010_KV, motor_GB6010_inductance);
-BLDCDriver3PWM GB6010driver = BLDCDriver3PWM(motor_GB6010_PWM_A, motor_GB6010_PWM_B, motor_GB6010_PWM_C);
+BLDCDriver3PWM GB6010driver = BLDCDriver3PWM(motor_GB6010_PWM_IN1, motor_GB6010_PWM_IN2, motor_GB6010_PWM_IN3, motor_GB6010_EN);
+
 BLDCMotor GB4315motor = BLDCMotor(motor_GB4315_PP, motor_GB4315_R, motor_GB4315_KV, motor_GB4315_inductance);
-BLDCDriver3PWM GB4315driver = BLDCDriver3PWM(motor_GB4315_PWM_A, motor_GB4315_PWM_B, motor_GB4315_PWM_C);
+BLDCDriver3PWM GB4315driver = BLDCDriver3PWM(motor_GB4315_PWM_IN1, motor_GB4315_PWM_IN2, motor_GB4315_PWM_IN3, motor_GB4315_EN);
 
 // Target angle variables
+float target_Angle_0 = motor_GB6025_HomeAngle;
 float target_Angle_1 = motor_GB6010_HomeAngle;
 float target_Angle_2 = motor_GB4315_HomeAngle;
 
 // Motor configurations
+MotorConfig gb6025_config = {
+  &GB6025motor, 
+  &sensor0, 
+  motor_GB6025_UPPER_LIMIT, 
+  motor_GB6025_LOWER_LIMIT, 
+  motor_GB6025_HomeAngle,
+  "GB6025"
+};
+
 MotorConfig gb6010_config = {
   &GB6010motor, 
-  &sensor2, 
+  &sensor1, 
   motor_GB6010_UPPER_LIMIT, 
   motor_GB6010_LOWER_LIMIT, 
   motor_GB6010_HomeAngle,
@@ -24,7 +38,7 @@ MotorConfig gb6010_config = {
 
 MotorConfig gb4315_config = {
   &GB4315motor, 
-  &sensor3, 
+  &sensor2, 
   motor_GB4315_UPPER_LIMIT, 
   motor_GB4315_LOWER_LIMIT, 
   motor_GB4315_HomeAngle,
@@ -33,15 +47,21 @@ MotorConfig gb4315_config = {
 
 // Initialize motor drivers
 void initializeMotorDrivers() {
-  // Initialize GB4315 driver
-  GB4315driver.voltage_power_supply = driver_voltage_supply;
-  GB4315driver.init();
-  GB4315driver.pwm_frequency = 30000;
-  
+
+  // Initialize GB6010 driver
+  GB6025driver.voltage_power_supply = driver_voltage_supply;
+  GB6025driver.init();
+  GB6025driver.pwm_frequency = 30000;
+
   // Initialize GB6010 driver
   GB6010driver.voltage_power_supply = driver_voltage_supply;
   GB6010driver.init();
   GB6010driver.pwm_frequency = 30000;
+  
+  // Initialize GB4315 driver
+  GB4315driver.voltage_power_supply = driver_voltage_supply;
+  GB4315driver.init();
+  GB4315driver.pwm_frequency = 30000;
   
   Serial.println("Motor drivers initialized");
 }
@@ -49,6 +69,11 @@ void initializeMotorDrivers() {
 // Link motors to drivers and set control modes
 void initializeMotorControllers() {
   // Link drivers to motors
+
+  GB6025motor.linkDriver(&GB6025driver);
+  GB6025motor.controller = MotionControlType::angle;
+  GB6025motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+
   GB4315motor.linkDriver(&GB4315driver);
   GB4315motor.controller = MotionControlType::angle;
   GB4315motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
@@ -62,18 +87,42 @@ void initializeMotorControllers() {
 
 // Set motor control parameters
 void initializeMotorParameters() {
+
+  // GB6025 motor parameters
+  //velocity PI controller parameters
+  GB6025motor.PID_velocity.P = 0.5f;
+  GB6025motor.PID_velocity.I = 3.2f;
+  GB6025motor.PID_velocity.D = 0.0f;
+  GB6025motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
+  GB6025motor.P_angle.P = 4.0f;
+  GB6025motor.P_angle.I = 0.0f;
+  GB6025motor.P_angle.D = 5.2f;
+  GB6025motor.P_angle.output_ramp = 0.2f;
+  GB6025motor.LPF_angle.Tf = 0.12f;
+  GB6025motor.velocity_limit = 20.0f;
+
   // GB6010 motor parameters
+  //velocity PI controller parameters
+  GB6010motor.PID_velocity.P = 0.5f;
+  GB6010motor.PID_velocity.I = 3.2f;
+  GB6010motor.PID_velocity.D = 0.0f;
+  GB6010motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
   GB6010motor.P_angle.P = 4.0f;
   GB6010motor.P_angle.I = 0.0f;
-  GB6010motor.P_angle.D = 5.2f;
+  GB6010motor.P_angle.D = 1.6f;
   GB6010motor.P_angle.output_ramp = 0.2f;
   GB6010motor.LPF_angle.Tf = 0.12f;
   GB6010motor.velocity_limit = 20.0f;
   
   // GB4315 motor parameters
-  GB4315motor.P_angle.P = 4.0f;
+  //velocity PI controller parameters
+  GB4315motor.PID_velocity.P = 0.5f;
+  GB4315motor.PID_velocity.I = 3.2f;
+  GB4315motor.PID_velocity.D = 0.0f;
+  GB4315motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
+  GB4315motor.P_angle.P = 2.0f;
   GB4315motor.P_angle.I = 0.0f;
-  GB4315motor.P_angle.D = 5.2f;
+  GB4315motor.P_angle.D = 4.2f;
   GB4315motor.P_angle.output_ramp = 0.2f;
   GB4315motor.LPF_angle.Tf = 0.12f;
   GB4315motor.velocity_limit = 20.0f;
@@ -83,13 +132,24 @@ void initializeMotorParameters() {
 
 // Link motors to sensors
 void linkMotorsToSensors() {
-  GB6010motor.linkSensor(&sensor2);
-  GB4315motor.linkSensor(&sensor3);
+  GB6025motor.linkSensor(&sensor0);
+  GB6010motor.linkSensor(&sensor1);
+  GB4315motor.linkSensor(&sensor2);
   Serial.println("Motors linked to sensors");
 }
 
 // Initialize motors with FOC
 void initializeMotors() {
+
+  // Initialize GB6025 motor
+  GB6025motor.init();
+  GB6025motor.zero_electric_angle = motor_GB6025_ZEAngle;
+  GB6025motor.sensor_direction = motor_GB6025_sensor_direction;
+  GB6025motor.sensor_offset = motor_GB6025_ZeroCalibratedAngle;
+  GB6025motor.voltage_limit = 12.0f;
+  GB6025motor.voltage_sensor_align = 5.0f;
+  GB6025motor.initFOC();
+
   // Initialize GB6010 motor
   GB6010motor.init();
   GB6010motor.zero_electric_angle = motor_GB6010_ZEAngle;
@@ -107,7 +167,7 @@ void initializeMotors() {
   GB4315motor.initFOC();
   GB4315motor.voltage_limit = 7.0f;
   GB4315motor.voltage_sensor_align = 3.0f;
-  
+
   Serial.println("Motors initialized with FOC");
 }
 
@@ -118,7 +178,9 @@ bool checkstarting(const MotorConfig& config) {
   Serial.print("Current Angle CHECKER: ");
   Serial.println(CurrentAngle);
   if (CurrentAngle >= config.upper_limit || CurrentAngle < config.lower_limit) {
-    Serial.println("Error: Motor not in starting position. Please move the motor to the home position (0 radians).");
+    Serial.print("Error: ");
+    Serial.print(config.name);
+    Serial.println(" not in starting position. Please move the motor to the home position.");
     return 1;
   }
   else {
@@ -134,7 +196,7 @@ bool goToHomePosition(const MotorConfig& config, unsigned long timeout_ms) {
     
     Serial.println("homing");
     Serial.println(config.name);
-    while (fabs(config.motor->shaftAngle() - config.home_angle) > 0.01f){
+    while (fabs(config.motor->shaftAngle( ) - config.home_angle) > 0.01f){
         config.sensor->update();
         config.motor->loopFOC();
         config.motor->move();

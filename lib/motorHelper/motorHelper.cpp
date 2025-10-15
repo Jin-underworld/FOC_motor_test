@@ -108,8 +108,8 @@ void initializeMotorParameters() {
   GB6010motor.PID_velocity.D = 0.0f;
   GB6010motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
   GB6010motor.P_angle.P = 4.0f;
-  GB6010motor.P_angle.I = 0.0f;
-  GB6010motor.P_angle.D = 1.6f;
+  GB6010motor.P_angle.I = 0.55f;
+  GB6010motor.P_angle.D = 4.1f;
   GB6010motor.P_angle.output_ramp = 0.2f;
   GB6010motor.LPF_angle.Tf = 0.12f;
   GB6010motor.velocity_limit = 20.0f;

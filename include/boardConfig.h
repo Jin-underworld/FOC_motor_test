@@ -39,14 +39,28 @@
     
 #elif SELECTED_BOARD == BOARD_STM32
     // STM32 pins
-    #define PIN_PWM_A PA0
-    #define PIN_PWM_B PA1
-    #define PIN_PWM_C PA2
-    #define PIN_ENABLE PA3
+    #define motor_GB6025_PWM_IN1 PB8 //IN1 TIMER 4 on F4dsicovery
+    #define motor_GB6025_PWM_IN2 PB7 //IN2
+    #define motor_GB6025_PWM_IN3 PB6  //IN3
+    #define motor_GB6025_EN PB9
+
+    #define motor_GB6010_PWM_IN1 PE13 //IN1 on FOC board TIMER 1 on F4discovery
+    #define motor_GB6010_PWM_IN2 PE11 //IN2
+    #define motor_GB6010_PWM_IN3 PE9 //IN3
+    #define motor_GB6010_EN PE7
+
+    #define motor_GB4315_PWM_IN1 PC9 //IN1 TIMER 3 on F4 discovery
+    #define motor_GB4315_PWM_IN2 PC8 //IN2
+    #define motor_GB4315_PWM_IN3 PC6  //IN3
+    #define motor_GB4315_EN PC11
+    
     // I2C pins
-    #define PIN_SDA PB7
-    #define PIN_SCL PB6
+    #define PIN_SDA PB11
+    #define PIN_SCL PB10
     #define BAUD_RATE 115200
+    #define BUTTON_PIN GPIO_PIN_0
+    #define BUTTON_GPIO_PORT GPIOA
+
 #else
     #error "Board type not defined or not supported"
 #endif

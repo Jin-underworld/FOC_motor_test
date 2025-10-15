@@ -1,7 +1,7 @@
 #include "sensorHelper.h"
 
 // I2C multiplexer initialization
-TwoWire Wire2(PB11, PB10);
+TwoWire Wire2(PIN_SDA, PIN_SCL);
 DFRobot_I2C_Multiplexer multiplexer(&Wire2, 0x70);
 
 // Sensor instances definitions

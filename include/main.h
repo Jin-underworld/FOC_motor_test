@@ -14,8 +14,6 @@
 //Motor driver configuration
 #define driver_voltage_supply 24.0f
 
-#define BUTTON_PIN PA0
-
 // Position control parameters
 #define POSITION_GAIN 0.5f
 #define DAMPING_GAIN 0.01f

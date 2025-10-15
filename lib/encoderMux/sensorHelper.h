@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <SimpleFOC.h>
 #include "DFRobot_I2C_Multiplexer.h"
+#include "../../include/main.h"
 
 // I2C configuration
 extern TwoWire Wire2;

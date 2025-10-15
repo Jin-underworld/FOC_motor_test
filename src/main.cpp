@@ -4,7 +4,7 @@
 #include "motorHelper.h"
 #include "sensorHelper.h"
 
-bool useFakeImpedance = false; //Set if you want to use the fake Impedance controller
+bool useFakeImpedance = true; //Set if you want to use the fake Impedance controller
 
 
 Commander command = Commander(Serial);
@@ -58,8 +58,7 @@ LowPassFilter target_filter = LowPassFilter(0.005); // 5ms for smooth target
 
 ControlState state;
 
-#define BUTTON_PIN GPIO_PIN_0
-#define BUTTON_GPIO_PORT GPIOA
+
 
 volatile bool buttonPressed = false;
 
@@ -106,7 +105,6 @@ void setup() {
   Serial.begin(BAUD_RATE);
   Serial.println("Hi");
   pinMode(LED_BUILTIN, OUTPUT);
-  Serial.begin(115200);
   initializeSensors();
 
   SimpleFOCDebug::enable(&Serial);
@@ -125,7 +123,6 @@ void setup() {
 
   //command.add('M',doMotor,"motor");
   command.add('T', doTarget, "target angle");
-  GB6010motor.useMonitoring(Serial);
 
   //Wait for button press with debounce
   Serial.println("Waiting for button press to start homing sequence...");
@@ -165,11 +162,9 @@ void setup() {
   delay(1000);
   Serial.println("Starting homing sequence...");
   
-  //goToHomePosition(gb6025_config);
-  
+  goToHomePosition(gb6025_config);
   goToHomePosition(gb6010_config);
-  //delay(8000);
-  //goToHomePosition(gb4315_config);
+  goToHomePosition(gb4315_config);
   
   Serial.println("Homing sequence completed. Motor is at home position.");
   ButtonReset(); // Reset button press flag
@@ -198,6 +193,9 @@ void loop() {
     target_Angle_0 = GB6025motor.shaftAngle();
     target_Angle_1 = GB6010motor.shaftAngle();
     target_Angle_2 = GB4315motor.shaftAngle();
+
+    //maybe add part to soften up all the controllers, then add else statement to flop the controller
+    //to harder settings under normal situation, add single counter so that else statement doesnt always slow down loop
   }
 
   GB6025motor.loopFOC();
@@ -229,7 +227,6 @@ void loop() {
     last_debug = millis();
   }
 
-  
   if(millis() - last_debug2 > 500) {  // Print every 500ms
     Serial.print("Target angle2: ");
     Serial.print(target_Angle_2);

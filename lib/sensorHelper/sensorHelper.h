@@ -38,5 +38,7 @@ extern MultiplexedMagneticSensorI2C sensor5;
 // Function declarations
 void initializeI2CMultiplexer();
 void initializeSensors();
+void updateAllEncoders();
+void printAllEncoders();
 
 #endif // SENSOR_HELPER_H

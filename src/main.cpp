@@ -3,9 +3,9 @@
 #include <SimpleFOC.h>
 #include "motorHelper.h"
 #include "sensorHelper.h"
+#include "forwardKinematics.h"
 
 bool useFakeImpedance = true; //Set if you want to use the fake Impedance controller
-
 
 Commander command = Commander(Serial);
 //void doMotor(char *cmd) { command.motor(&GB4315motor, cmd); }
@@ -30,22 +30,6 @@ struct ControlState {
                                            // calibrate for your motor
 const float current_threshold = 0.05; // Minimum current for force detection [A]
 
-void readAllEncoders() {
-  sensor0.update();
-  sensor1.update();
-  sensor2.update();
-  // sensor3.update();
-  // sensor4.update();
-  // sensor5.update();
-
-  Serial.print("Encoder 0: "); Serial.println(sensor0.getAngle(), 3);
-  Serial.print("Encoder 1: "); Serial.println(sensor1.getAngle(), 3);
-  Serial.print("Encoder 2: "); Serial.println(sensor2.getAngle(), 3);
-  // Serial.print("Encoder 4: "); Serial.println(sensor4.getAngle(), 3);
-  // Serial.print("Encoder 5: "); Serial.println(sensor5.getAngle(), 3);
-  // Serial.print("Encoder 6: "); Serial.println(sensor6.getAngle(), 3);
-}
-
 LowPassFilter position_filter =
     LowPassFilter(0.05); // Strong filtering for position
 LowPassFilter velocity_filter =
@@ -57,8 +41,6 @@ LowPassFilter torque_filter =
 LowPassFilter target_filter = LowPassFilter(0.005); // 5ms for smooth target
 
 ControlState state;
-
-
 
 volatile bool buttonPressed = false;
 
@@ -104,7 +86,6 @@ void setup() {
 
   Serial.begin(BAUD_RATE);
   Serial.println("Hi");
-  pinMode(LED_BUILTIN, OUTPUT);
   initializeSensors();
 
   SimpleFOCDebug::enable(&Serial);
@@ -129,9 +110,8 @@ void setup() {
   while (!buttonPressed) {
     // Optional: Add watchdog or timeout
     ButtonChecker();
-    sensor0.update();
-    sensor1.update();
-    sensor2.update();
+    updateAllEncoders();
+
     Serial.print("Current Angle: ");
     Serial.println(GB6025motor.shaftAngle(),3);
     Serial.println(GB6010motor.shaftAngle(),3);
@@ -139,9 +119,7 @@ void setup() {
     delay(10); // Small delay to prevent tight loop
   }
 
-  sensor0.update();
-  sensor1.update();
-  sensor2.update();
+  updateAllEncoders();
   
   if (checkstarting(gb6025_config)) {
     Serial.println("Enter Error Loop: Motor not in starting position!");
@@ -237,10 +215,6 @@ void loop() {
 
   command.run();
 
-  
-
-  
-
   if (buttonPressed && !useFakeImpedance) {
     delay(50); // Debounce delay
     
@@ -253,9 +227,9 @@ void loop() {
       // Wait for button release
       ButtonChecker();
       delay(10);
+      printPose();
       Serial.print("press button again to exit error loop.");
     }
-
 
     Serial.println("Exiting error loop. Resuming operation.");
     GB6025motor.enable();
@@ -269,11 +243,9 @@ void loop() {
     GB4315motor.enable();
     sensor2.update();
     target_Angle_2 = GB4315motor.shaftAngle(); // Set target to current position
-   
+
 
   }
-
-
 
   // Serial.println("\n=== I2C Scanner ===");
   // Serial.println("Scanning main I2C bus...");

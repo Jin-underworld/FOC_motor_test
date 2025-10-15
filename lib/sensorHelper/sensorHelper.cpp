@@ -47,3 +47,24 @@ void initializeSensors() {
 
     Serial.println("All sensors initialized");
 }
+
+// Update all sensors
+void updateAllEncoders() {
+    sensor0.update();
+    sensor1.update();
+    sensor2.update();
+    // sensor3.update();
+    // sensor4.update();
+    // sensor5.update();
+}
+
+void printAllEncoders() {
+
+    updateAllEncoders();
+    Serial.print("Encoder 0: "); Serial.println(sensor0.getAngle(), 3);
+    Serial.print("Encoder 1: "); Serial.println(sensor1.getAngle(), 3);
+    Serial.print("Encoder 2: "); Serial.println(sensor2.getAngle(), 3);
+    // Serial.print("Encoder 4: "); Serial.println(sensor4.getAngle(), 3);
+    // Serial.print("Encoder 5: "); Serial.println(sensor5.getAngle(), 3);
+    // Serial.print("Encoder 6: "); Serial.println(sensor6.getAngle(), 3);
+}

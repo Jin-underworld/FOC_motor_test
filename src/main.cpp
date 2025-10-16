@@ -5,7 +5,7 @@
 #include "sensorHelper.h"
 #include "forwardKinematics.h"
 
-bool useFakeImpedance = true; //Set if you want to use the fake Impedance controller
+bool useFakeImpedance = false; //Set if you want to use the fake Impedance controller
 
 Commander command = Commander(Serial);
 //void doMotor(char *cmd) { command.motor(&GB4315motor, cmd); }
@@ -140,9 +140,9 @@ void setup() {
   delay(1000);
   Serial.println("Starting homing sequence...");
   
-  goToHomePosition(gb6025_config);
-  goToHomePosition(gb6010_config);
-  goToHomePosition(gb4315_config);
+  // goToHomePosition(gb6025_config);
+  // goToHomePosition(gb6010_config);
+  // goToHomePosition(gb4315_config);
   
   Serial.println("Homing sequence completed. Motor is at home position.");
   ButtonReset(); // Reset button press flag
@@ -189,31 +189,38 @@ void loop() {
   static uint32_t last_debug = 0;
   static uint32_t last_debug2 = 0;
 
-  if(millis() - last_debug > 500) {  // Print every 500ms
-    Serial.print("Target angle0: ");
-    Serial.print(target_Angle_0);
-    Serial.print(" Current angle1: ");
-    Serial.println(GB6025motor.shaftAngle(), 3);
-    last_debug = millis();
+  
+  //printPose();
+
+  if(micros() - last_debug > 1000) {  // Print every 500ms
+    // Serial.print("Target angle0: ");
+    // Serial.print(target_Angle_0);
+    // Serial.print(" Current angle1: ");
+    // Serial.println(GB6025motor.shaftAngle(), 3);
+    //Serial.print("Current Pose:");
+    printPose();
+    last_debug = micros();
   }
 
-  if(millis() - last_debug > 500) {  // Print every 500ms
-    Serial.print("Target angle1: ");
-    Serial.print(target_Angle_1);
-    Serial.print(" Current angle1: ");
-    Serial.println(GB6010motor.shaftAngle(), 3);
-    last_debug = millis();
-  }
+  // if(millis() - last_debug > 500) {  // Print every 500ms
+  //   Serial.print("Target angle1: ");
+  //   Serial.print(target_Angle_1);
+  //   Serial.print(" Current angle1: ");
+  //   Serial.println(GB6010motor.shaftAngle(), 3);
+  //   last_debug = millis();
+  // }
 
-  if(millis() - last_debug2 > 500) {  // Print every 500ms
-    Serial.print("Target angle2: ");
-    Serial.print(target_Angle_2);
-    Serial.print(" Current angle2: ");
-    Serial.println(GB4315motor.shaftAngle(), 3);
-    last_debug2 = millis();
-  }
+  // if(millis() - last_debug2 > 500) {  // Print every 500ms
+  //   Serial.print("Target angle2: ");
+  //   Serial.print(target_Angle_2);
+  //   Serial.print(" Current angle2: ");
+  //   Serial.println(GB4315motor.shaftAngle(), 3);
+  //   last_debug2 = millis();
+  // }
 
   command.run();
+
+  
 
   if (buttonPressed && !useFakeImpedance) {
     delay(50); // Debounce delay
@@ -228,10 +235,11 @@ void loop() {
       ButtonChecker();
       delay(10);
       printPose();
-      Serial.print("press button again to exit error loop.");
+      // Serial.print("press button again to exit error loop.");
     }
 
     Serial.println("Exiting error loop. Resuming operation.");
+    printPose();
     GB6025motor.enable();
     sensor0.update();
     target_Angle_0 = GB6025motor.shaftAngle(); // Set target to current position
@@ -243,7 +251,6 @@ void loop() {
     GB4315motor.enable();
     sensor2.update();
     target_Angle_2 = GB4315motor.shaftAngle(); // Set target to current position
-
 
   }
 

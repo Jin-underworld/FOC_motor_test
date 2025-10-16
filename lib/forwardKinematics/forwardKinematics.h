@@ -3,6 +3,7 @@
 #define FORWARD_KINEMATICS_H
 
 #include "../../include/main.h"
+#include <Arduino.h>
 
 // Pose structure to store position and orientation
 typedef struct {
@@ -16,8 +17,8 @@ void dhTransform(float theta, float alpha, float d, float r, float T[4][4]);
 Pose6D forwardKinematics(void);
 
 void printPose(void);
-
-// Overloaded function to print a specific pose
 void printPose(const Pose6D &pose);
+
+void printMatrix(const float mat[4][4], const char* name);
 
 #endif // FORWARD_KINEMATICS_H

@@ -19,10 +19,10 @@
 #define motor_GB6010_inductance 12.35e-3
 #define motor_GB6010_ZEAngle 6.11f
 #define motor_GB6010_sensor_direction Direction::CCW
-#define motor_GB6010_ZeroCalibratedAngle -2.94f + M_PI/3 // 60 degree initialIMPT!!!! code minus this away. so for angle use angle as is when at 0 position. PI adjustment is to avoid negative angles
-#define motor_GB6010_HomeAngle 0.0f  // Define the home position angle (in radians)
-#define motor_GB6010_UPPER_LIMIT 0.537f - 0.001f
-#define motor_GB6010_LOWER_LIMIT -(1.075f - 0.001f) 
+#define motor_GB6010_ZeroCalibratedAngle -2.94f //+ M_PI/3 // 60 degree initialIMPT!!!! code minus this away. so for angle use angle as is when at 0 position. PI adjustment is to avoid negative angles
+#define motor_GB6010_HomeAngle M_PI/3  // Define the home position angle (in radians)
+#define motor_GB6010_UPPER_LIMIT 1.601f - 0.001f
+#define motor_GB6010_LOWER_LIMIT -(0.007f - 0.001f) 
 
 // Motor configuration 4315
 #define motor_GB4315_PP 14
@@ -31,7 +31,7 @@
 #define motor_GB4315_inductance 6.45e-3
 #define motor_GB4315_ZEAngle 4.02f
 #define motor_GB4315_sensor_direction Direction::CCW
-#define motor_GB4315_ZeroCalibratedAngle -4.331f + 2.134f + 2.335f
-#define motor_GB4315_HomeAngle 0.0f  // Define the home position angle (in radians)
-#define motor_GB4315_UPPER_LIMIT 0.69f
-#define motor_GB4315_LOWER_LIMIT -1.69f
+#define motor_GB4315_ZeroCalibratedAngle -4.331f + 2.134f //+ 2.335f
+#define motor_GB4315_HomeAngle 0.75*M_PI  // Define the home position angle (in radians)
+#define motor_GB4315_UPPER_LIMIT 2.628f - 0.001f
+#define motor_GB4315_LOWER_LIMIT 0.005f - 0.001f

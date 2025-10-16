@@ -6,12 +6,6 @@
 #ifndef MAIN_CONFIG_H
 #define MAIN_CONFIG_H
 
-// Physical parameters for gravity compensation
-// #define ARM_LENGTH 0.1f    // 100mm = 0.1m
-// #define LOAD_MASS 0.06f    // 20g = 0.02kg
-// #define GRAVITY 9.81f      // m/s^2
-// #define VOLTAGE_TO_TORQUE_RATIO 2.13f  // TUNED [Nm/V]
-
 //Motor driver configuration
 #define driver_voltage_supply 24.0f
 

@@ -64,6 +64,11 @@ extern "C" void __attribute__((weak)) HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   }
 }
 
+float GB6025angle = constrain(GB6025motor.shaftAngle(),-M_PI,M_PI);
+float GB6010angle = constrain(GB6010motor.shaftAngle(),-M_PI,M_PI);
+float GB4315angle = constrain(GB4315motor.shaftAngle(),-M_PI,M_PI);
+
+
 void setup() {
   
   // Enable GPIOA clock
@@ -112,7 +117,7 @@ void setup() {
     ButtonChecker();
     updateAllEncoders();
 
-    Serial.print("Current Angle: ");
+    Serial.print("Current Angle: \n");
     Serial.println(GB6025motor.shaftAngle(),3);
     Serial.println(GB6010motor.shaftAngle(),3);
     Serial.println(GB4315motor.shaftAngle(),3);
@@ -121,21 +126,21 @@ void setup() {
 
   updateAllEncoders();
   
-  if (checkstarting(gb6025_config)) {
-    Serial.println("Enter Error Loop: Motor not in starting position!");
-    while(1); // Halt execution
-  }
+//   if (checkstarting(gb6025_config)) {
+//     Serial.println("Enter Error Loop: Motor not in starting position!");
+//     while(1); // Halt execution
+//   }
 
-  if (checkstarting(gb6010_config)) {
-    Serial.println("Enter Error Loop: Motor not in starting position!");
-    while(1); // Halt execution
-  }
+//   if (checkstarting(gb6010_config)) {
+//     Serial.println("Enter Error Loop: Motor not in starting position!");
+//     while(1); // Halt execution
+//   }
 
-  if (checkstarting(gb4315_config)) {
-    Serial.println("Enter Error Loop: GB4315 Motor not in starting position!");
-    while(1); // Halt execution
-}
-  // Execute homing sequence
+//   if (checkstarting(gb4315_config)) {
+//     Serial.println("Enter Error Loop: GB4315 Motor not in starting position!");
+//     while(1); // Halt execution
+// }
+//   // Execute homing sequence
   
   delay(1000);
   Serial.println("Starting homing sequence...");
@@ -147,25 +152,22 @@ void setup() {
   Serial.println("Homing sequence completed. Motor is at home position.");
   ButtonReset(); // Reset button press flag
 
+  //For testing motors
+  //GB4315motor.disable();
+  //GB6010motor.disable();
+  //GB6025motor.disable();
+
+  
 }
+
+float K_spring = 2.0f; //spring Constant (Nm/rad)
+float D_damper = 0.7f; //Damping constant (Nm/(rad/s))
+
 
 void loop() {
 
   //readAllEncoders();
   
-  // static uint32_t last_print = 0;
-  // if(millis() - last_print > 1000) {
-  //   Serial.print("Button state: ");
-  //   Serial.println(HAL_GPIO_ReadPin(BUTTON_GPIO_PORT, BUTTON_PIN));
-  //   Serial.print("Current target angle: ");
-  //   Serial.println(target_Angle_1);
-  //   last_print = millis();
-  // }
-
-  //Serial.print("PA0 state: ");
-  //Serial.println(HAL_GPIO_ReadPin(BUTTON_GPIO_PORT, BUTTON_PIN));
-  ////start try motor-Jin
-
   ButtonChecker();
   if(buttonPressed&&useFakeImpedance){
     target_Angle_0 = GB6025motor.shaftAngle();
@@ -179,8 +181,19 @@ void loop() {
   GB6025motor.loopFOC();
   GB6025motor.move(target_Angle_0);
 
+  //test branch: impedance control only on 6010motor
+  float dtheta =GB6010motor.shaft_velocity;
+  float theta = GB6010motor.shaft_angle;
+
+  float torque_cmd = 
+      -K_spring * (theta - target_Angle_1)
+      -D_damper * dtheta;
+
+  torque_cmd = constrain(torque_cmd,-0.9f,2.0f);
+  torque_cmd = torque_cmd/0.61f;
+
   GB6010motor.loopFOC();
-  GB6010motor.move(target_Angle_1);
+  GB6010motor.move(torque_cmd);
 
   // Add GB4315 motor control
   GB4315motor.loopFOC();
@@ -192,13 +205,16 @@ void loop() {
   
   //printPose();
 
-  if(micros() - last_debug > 1000) {  // Print every 500ms
-    // Serial.print("Target angle0: ");
-    // Serial.print(target_Angle_0);
-    // Serial.print(" Current angle1: ");
-    // Serial.println(GB6025motor.shaftAngle(), 3);
-    //Serial.print("Current Pose:");
-    printPose();
+  if(micros() - last_debug > 1000) {  // Print every 1miilisecond
+    //prints pos endeffector in joint space for Unity controller(rate limited)
+    Serial.print(torque_cmd);printPose();
+    //additional print
+    
+    // Serial.print("\n");
+    // Serial.print("Current Angle: \n");
+    // Serial.println(GB6025motor.shaftAngle(),3);
+    // Serial.println(GB6010motor.shaftAngle(),3);
+    // Serial.println(GB4315motor.shaftAngle(),3);
     last_debug = micros();
   }
 

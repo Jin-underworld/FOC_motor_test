@@ -79,7 +79,8 @@ void initializeMotorControllers() {
   GB4315motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
   
   GB6010motor.linkDriver(&GB6010driver);
-  GB6010motor.controller = MotionControlType::angle;
+  GB6010motor.controller = MotionControlType::torque;
+  GB6010motor.torque_controller = TorqueControlType::voltage;
   GB6010motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
   
   Serial.println("Motor controllers configured");
@@ -156,7 +157,8 @@ void initializeMotors() {
   GB6010motor.sensor_direction = motor_GB6010_sensor_direction;
   GB6010motor.sensor_offset = motor_GB6010_ZeroCalibratedAngle;
   GB6010motor.initFOC();
-  GB6010motor.voltage_limit = 7.0f;
+  GB6010motor.voltage_limit = 14.0f;
+  GB6010motor.current_limit = 0.7f;
   GB6010motor.voltage_sensor_align = 4.0f;
   
   // Initialize GB4315 motor

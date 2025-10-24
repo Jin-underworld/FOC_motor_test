@@ -9,7 +9,8 @@
 #define RAD2DEG(x) ((x) * 180.0f/ M_PI)
 
 #define GRAVITY 9.81f      // m/s^2
-
+//global frame is the centre of the base, below J0, at table level
+#define NUMBER_OF_JOINTS 3
 #define GLOBAL_TO_JOINT0_LENGTH 62.5f
 #define LINK0_LENGTH 160.0f
 #define LINK1_LENGTH 160.5f
@@ -22,8 +23,9 @@
 #define LINK2_X_OFFSET (LINK2_LENGTH*sin(DEG2RAD(ANGLE_BTW_LINK1_LINK2/2))+ANGLED_OFFSET_LENGTH)
 
 // DH parameters for your robot
+// global frame is below J0!!
 static const float THETA_OFFSET[3] = {0.0f, 0.0f, 0.0f};  // Angle around z axis (deg)
-static const float ALPHA_DH[3] = {90.0f, 180.0f, 0.0f};      // Twist angle around X axis (deg)
+static const float ALPHA_DH[3] = {M_PI/2, M_PI, 0.0f};      // Twist angle around X axis (deg)
 static const float D_DH[3]     = {LINK0_LENGTH, 0.0f, 0.0f}; // Link offset along Z axis (mm)
 static const float R_DH[3]     = {0.0f, LINK1_LENGTH, LINK2_LENGTH}; // Link length along X axis (mm)
 

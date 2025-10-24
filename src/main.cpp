@@ -206,8 +206,9 @@ void loop() {
     //printPose();
     //printRawSensorAngles();
     //additional print
-    printJacobian();
-    checkJacobian();
+    Jacobian J = calculateJacobian();
+    printJacobian(J);
+    checkJacobian(J);
     // Serial.print("\n");
     // Serial.print("Current Angle: \n");
     // Serial.println(GB6025motor.shaftAngle(),3);

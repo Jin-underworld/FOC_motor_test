@@ -123,9 +123,9 @@ Jacobian calculateJacobian(void) {
     
     // r1e = p3 - p1 (vector from joint 1 to end effector)
     for (int i = 0; i < 3; i++) {
-        rJ0_e[i] = p_Ge[i] - pG[i];
-        rJ1_e[i] = p_Ge[i] - pJ0[i];
-        rJ2_e[i] = p_Ge[i] - pJ1[i]; 
+        rJ0_e[i] = p_Ge[i] - pJ0[i];
+        rJ1_e[i] = p_Ge[i] - pJ1[i];
+        rJ2_e[i] = p_Ge[i] - pJ2[i]; 
     }
     
     // Calculate Jacobian columns
@@ -225,15 +225,19 @@ float determinant3x3(float mat[3][3]) {
            mat[0][2] * (mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0]);
 }
 
-void checkJacobian(void) {
+void checkJacobian(void){
+    Jacobian J = calculateJacobian();
+    return checkJacobian(J);
+}
+
+void checkJacobian(const Jacobian &J) {
     Serial.println("=== JACOBIAN VALIDATION ===");
     
-    Jacobian J = calculateJacobian();
     
     // Get current joint angles for reference
     float theta[3];
     for (int i = 0; i < 3; ++i) {
-        theta[i] = getSensorAngleKinematics(i);
+        theta[i] = getSensorAngleKinematics(i); //in rad
     }
     
     Serial.print("Current joint angles: [");
@@ -301,9 +305,7 @@ void checkJacobian(void) {
         matMul4x4(T01, T12, T02);
         matMul4x4(T02, T23, T03);
         matMul4x4(TG0, T03, TGE);
-        // float T_03E[4][4], T_G_EE[4][4];
-        // matMul4x4(T03, T3E, T_03E);
-        // matMul4x4(TG0, T_03E, T_G_EE);
+        //for now 3 is endeffector, add on as joints come in
         extractPosition(TGE, p_out);
     };
 
@@ -314,7 +316,7 @@ void checkJacobian(void) {
 
     // Assume J is your analytical Jacobian already computed for 'theta'
 
-    for (int joint = 0; joint < 3; ++joint) {
+    for (int joint = 0; joint < NUMBER_OF_JOINTS; ++joint) {
         Serial.print("Joint "); Serial.print(joint); Serial.print(": ");
 
         // Forward (one-sided) difference

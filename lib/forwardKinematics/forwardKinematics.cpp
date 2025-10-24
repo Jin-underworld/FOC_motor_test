@@ -13,17 +13,17 @@ float getSensorAngleKinematics(int joint) {
         case 0: 
             sensor0.update();
             angle_rad = getMotorRawAngle(&GB6025motor);
-            Serial.print("angle0: "); Serial.print(getMotorRawAngle(&GB6025motor), 4); Serial.print(", ");
+            // Serial.print("angle0: "); Serial.print(angle_rad, 3);
             break;
         case 1: 
             sensor1.update();
             angle_rad = getMotorRawAngle(&GB6010motor);
-            Serial.print(" angle1: "); Serial.print(getMotorRawAngle(&GB6010motor), 4); Serial.print(", ");
+            //Serial.print(" angle1: "); Serial.print(angle_rad, 3);
             break;
         case 2: 
             sensor2.update();
             angle_rad = getMotorRawAngle(&GB4315motor);
-            Serial.print(" angle2: ");Serial.print(getMotorRawAngle(&GB4315motor), 4); Serial.println(", ");
+            //Serial.print(" angle2: "); Serial.println(angle_rad, 3);
             break;
         default: 
             angle_rad = 0.0f;
@@ -31,14 +31,15 @@ float getSensorAngleKinematics(int joint) {
     }
     
     // Convert to degrees and add the configured offset
-    float result = RAD2DEG(angle_rad) + THETA_OFFSET[joint];
+    //float result = RAD2DEG(angle_rad) + THETA_OFFSET[joint];
+
     // Serial.print("Joint ");
     // Serial.print(joint);
     // Serial.print(" final angle (deg): ");
     // Serial.println(result, 2);
-    return result; //outputs results in degrees
+    return angle_rad;
 }
-//shouldnt be wrong v1
+//shoiuldnt be wrong v1
 void matMul4x4(const float A[4][4], const float B[4][4], float R[4][4]) {
     for (int i = 0; i < 4; ++i)
         for (int j = 0; j < 4; ++j) {
@@ -48,12 +49,11 @@ void matMul4x4(const float A[4][4], const float B[4][4], float R[4][4]) {
         }
 }
 //verfied v1
-//DH transform takes in degrees
 void dhTransform(float theta, float alpha, float d, float r, float T[4][4]) {
-    float ct = cosf(DEG2RAD(theta));
-    float st = sinf(DEG2RAD(theta));
-    float ca = cosf(DEG2RAD(alpha));
-    float sa = sinf(DEG2RAD(alpha));
+    float ct = cosf(theta);
+    float st = sinf(theta);
+    float ca = cosf(alpha);
+    float sa = sinf(alpha);
 
     T[0][0] = ct;    T[0][1] = -st * ca;  T[0][2] = st * sa;   T[0][3] = r * ct;
     T[1][0]  = st;    T[1][1] = ct * ca;   T[1][2] = -ct * sa;  T[1][3] = r * st;
@@ -76,21 +76,20 @@ Pose6D forwardKinematics(void) {
     dhTransform(temptheta[2], ALPHA_DH[2], D_DH[2], R_DH[2], T23);
 
     // Combine all transforms: T_GE = TG0 * T01 * T12 * T23 * T3E
-    float T02[4][4], T03[4][4], Ttemp[4][4], TGE[4][4];
+    float T02[4][4], T03[4][4], Ttemp[4][4], TG3[4][4],TGE[4][4];
     matMul4x4(T01, T12, T02);
     matMul4x4(T02, T23, T03);
-    // matMul4x4(T03, T3E, Ttemp);
-    matMul4x4(TG0, T03, TGE);
-
+    matMul4x4(TG0, T03, TGE); 
+    //TGE = TG3; //treat End effector as joint 3 for now
     // printMatrix(T01, "T01");
     // printMatrix(T12, "T12");
     // printMatrix(T23, "T23");
     // printMatrix(TGE, "Final Transform TGE");
 
     Pose6D pose;
-    pose.x = TGE[0][3];
-    pose.y = TGE[1][3];
-    pose.z = TGE[2][3];
+    pose.x = TG3[0][3];
+    pose.y = TG3[1][3];
+    pose.z = TG3[2][3];
 
     // Extract Euler angles (ZYX convention)
     pose.pitch = atan2f(-TGE[2][0], sqrtf(TGE[0][0]*TGE[0][0] + TGE[1][0]*TGE[1][0]));

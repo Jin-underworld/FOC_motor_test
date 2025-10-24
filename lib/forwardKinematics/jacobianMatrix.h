@@ -42,6 +42,7 @@ void calculateEndEffectorVelocity(const Jacobian &jacobian, float joint_velociti
 
 //checker function
 void checkJacobian(void);
+void checkJacobian(const Jacobian &J);
 
 // Helper function for dot product
 float dotProduct(const float a[3], const float b[3]);

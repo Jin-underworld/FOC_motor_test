@@ -31,6 +31,8 @@ struct MotorConfig {
     const char* name;
 };
 
+extern LowPassFilter LPF_angle0;
+
 // Function declarations
 void initializeMotorDrivers();
 void initializeMotorControllers();
@@ -40,6 +42,9 @@ void initializeMotors();
 bool checkstarting(const MotorConfig& config);
 bool goToHomePosition(const MotorConfig& config, unsigned long timeout_ms = 5000);
 void doTarget(char* cmd);
+void printRawSensorAngles(void);
+float getMotorRawAngle(BLDCMotor* motor);
+
 
 // Motor config instances
 extern MotorConfig gb6025_config;

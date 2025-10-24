@@ -79,8 +79,8 @@ void initializeMotorControllers() {
   GB4315motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
   
   GB6010motor.linkDriver(&GB6010driver);
-  GB6010motor.controller = MotionControlType::torque;
-  GB6010motor.torque_controller = TorqueControlType::voltage;
+  GB6010motor.controller = MotionControlType::angle;
+  //GB6010motor.torque_controller = TorqueControlType::voltage;
   GB6010motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
   
   Serial.println("Motor controllers configured");
@@ -108,9 +108,9 @@ void initializeMotorParameters() {
   GB6010motor.PID_velocity.I = 3.2f;
   GB6010motor.PID_velocity.D = 0.0f;
   GB6010motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
-  GB6010motor.P_angle.P = 4.0f;
-  GB6010motor.P_angle.I = 0.55f;
-  GB6010motor.P_angle.D = 4.1f;
+  GB6010motor.P_angle.P = 6.0f;
+  GB6010motor.P_angle.I = 0.01f;
+  GB6010motor.P_angle.D = 5.8f;
   GB6010motor.P_angle.output_ramp = 0.2f;
   GB6010motor.LPF_angle.Tf = 0.12f;
   GB6010motor.velocity_limit = 20.0f;
@@ -222,4 +222,24 @@ bool goToHomePosition(const MotorConfig& config, unsigned long timeout_ms) {
 void doTarget(char* cmd) { 
   extern Commander command;
   command.scalar(&target_Angle_1, cmd); 
+}
+
+void printRawSensorAngles() {
+  Serial.print("Sensor angles: ");
+  Serial.print(getMotorRawAngle(&GB6025motor), 4); Serial.print(", ");
+  Serial.print(getMotorRawAngle(&GB6010motor), 4); Serial.print(", ");
+  Serial.println(getMotorRawAngle(&GB4315motor), 4);
+}
+
+LowPassFilter LPF_angle0(0.25);
+
+// Get motor angle (0-2π) with direction and offset but without revolution counting
+float getMotorRawAngle(BLDCMotor* motor) {
+  if(!motor->sensor) return 0;
+  
+  // Get raw angle (0-2π) and apply direction and offset
+  float raw_angle = motor->sensor_direction *  motor->sensor->getMechanicalAngle() - motor->sensor_offset;
+  
+  // Normalize to 0-2π range
+  return _normalizeAngle(raw_angle);
 }

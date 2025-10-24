@@ -4,6 +4,7 @@
 #include "motorHelper.h"
 #include "sensorHelper.h"
 #include "forwardKinematics.h"
+#include "jacobianMatrix.h"
 
 bool useFakeImpedance = false; //Set if you want to use the fake Impedance controller
 
@@ -63,10 +64,6 @@ extern "C" void __attribute__((weak)) HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     
   }
 }
-
-float GB6025angle = constrain(GB6025motor.shaftAngle(),-M_PI,M_PI);
-float GB6010angle = constrain(GB6010motor.shaftAngle(),-M_PI,M_PI);
-float GB4315angle = constrain(GB4315motor.shaftAngle(),-M_PI,M_PI);
 
 
 void setup() {
@@ -178,6 +175,8 @@ void loop() {
     //to harder settings under normal situation, add single counter so that else statement doesnt always slow down loop
   }
 
+
+
   GB6025motor.loopFOC();
   GB6025motor.move(target_Angle_0);
 
@@ -193,23 +192,22 @@ void loop() {
   torque_cmd = torque_cmd/0.61f;
 
   GB6010motor.loopFOC();
-  GB6010motor.move(torque_cmd);
+  GB6010motor.move(target_Angle_1);
 
   // Add GB4315 motor control
   GB4315motor.loopFOC();
   GB4315motor.move(target_Angle_2); 
 
   static uint32_t last_debug = 0;
-  static uint32_t last_debug2 = 0;
-
   
-  //printPose();
 
-  if(micros() - last_debug > 1000) {  // Print every 1miilisecond
+  if(micros() - last_debug > 100000) {  // Print every 10 miilisecond
     //prints pos endeffector in joint space for Unity controller(rate limited)
-    Serial.print(torque_cmd);printPose();
+    //printPose();
+    //printRawSensorAngles();
     //additional print
-    
+    printJacobian();
+    checkJacobian();
     // Serial.print("\n");
     // Serial.print("Current Angle: \n");
     // Serial.println(GB6025motor.shaftAngle(),3);

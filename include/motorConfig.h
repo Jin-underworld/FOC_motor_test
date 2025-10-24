@@ -31,7 +31,7 @@
 #define motor_GB4315_inductance 6.45e-3
 #define motor_GB4315_ZEAngle 4.02f
 #define motor_GB4315_sensor_direction Direction::CCW
-#define motor_GB4315_ZeroCalibratedAngle -4.331f + 2.134f -2*M_PI//+ 2.335f
+#define motor_GB4315_ZeroCalibratedAngle -4.331f + 2.134f //-2*M_PI//+ 2.335f
 #define motor_GB4315_HomeAngle 0.75*M_PI  // Define the home position angle (in radians)
 #define motor_GB4315_UPPER_LIMIT 2.628f - 0.001f
 #define motor_GB4315_LOWER_LIMIT 0.005f - 0.001f

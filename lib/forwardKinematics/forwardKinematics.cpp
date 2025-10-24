@@ -12,18 +12,18 @@ float getSensorAngleKinematics(int joint) {
     switch (joint) {
         case 0: 
             sensor0.update();
-            angle_rad = GB6025motor.shaftAngle(); 
-            // Serial.print("angle0: "); Serial.print(angle_rad, 3);
+            angle_rad = getMotorRawAngle(&GB6025motor);
+            Serial.print("angle0: "); Serial.print(getMotorRawAngle(&GB6025motor), 4); Serial.print(", ");
             break;
         case 1: 
             sensor1.update();
-            angle_rad = GB6010motor.shaftAngle(); 
-            //Serial.print(" angle1: "); Serial.print(angle_rad, 3);
+            angle_rad = getMotorRawAngle(&GB6010motor);
+            Serial.print(" angle1: "); Serial.print(getMotorRawAngle(&GB6010motor), 4); Serial.print(", ");
             break;
         case 2: 
             sensor2.update();
-            angle_rad = GB4315motor.shaftAngle(); 
-            //Serial.print(" angle2: "); Serial.println(angle_rad, 3);
+            angle_rad = getMotorRawAngle(&GB4315motor);
+            Serial.print(" angle2: ");Serial.print(getMotorRawAngle(&GB4315motor), 4); Serial.println(", ");
             break;
         default: 
             angle_rad = 0.0f;
@@ -36,9 +36,9 @@ float getSensorAngleKinematics(int joint) {
     // Serial.print(joint);
     // Serial.print(" final angle (deg): ");
     // Serial.println(result, 2);
-    return result;
+    return result; //outputs results in degrees
 }
-//shoiuldnt be wrong v1
+//shouldnt be wrong v1
 void matMul4x4(const float A[4][4], const float B[4][4], float R[4][4]) {
     for (int i = 0; i < 4; ++i)
         for (int j = 0; j < 4; ++j) {
@@ -48,6 +48,7 @@ void matMul4x4(const float A[4][4], const float B[4][4], float R[4][4]) {
         }
 }
 //verfied v1
+//DH transform takes in degrees
 void dhTransform(float theta, float alpha, float d, float r, float T[4][4]) {
     float ct = cosf(DEG2RAD(theta));
     float st = sinf(DEG2RAD(theta));

@@ -201,7 +201,7 @@ void loop() {
   static uint32_t last_debug = 0;
   
 
-  if(micros() - last_debug > 100000) {  // Print every 10 miilisecond
+  if(micros() - last_debug > 10000) {  // Print every 10 miilisecond
     //prints pos endeffector in joint space for Unity controller(rate limited)
     //printPose();
     //printRawSensorAngles();

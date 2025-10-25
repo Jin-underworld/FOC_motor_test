@@ -5,6 +5,7 @@
 #include "sensorHelper.h"
 #include "forwardKinematics.h"
 #include "jacobianMatrix.h"
+#include "impControl.h"
 
 bool useFakeImpedance = false; //Set if you want to use the fake Impedance controller
 
@@ -65,7 +66,6 @@ extern "C" void __attribute__((weak)) HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   }
 }
 
-
 void setup() {
   
   // Enable GPIOA clock
@@ -115,9 +115,9 @@ void setup() {
     updateAllEncoders();
 
     Serial.print("Current Angle: \n");
-    Serial.println(GB6025motor.shaftAngle(),3);
-    Serial.println(GB6010motor.shaftAngle(),3);
-    Serial.println(GB4315motor.shaftAngle(),3);
+    Serial.println(getMotorRawAngle(Joint_motor[0]),3);
+    Serial.println(getMotorRawAngle(Joint_motor[1]),3);
+    Serial.println(getMotorRawAngle(Joint_motor[2]),3);
     delay(10); // Small delay to prevent tight loop
   }
 
@@ -148,7 +148,7 @@ void setup() {
   
   Serial.println("Homing sequence completed. Motor is at home position.");
   ButtonReset(); // Reset button press flag
-
+  initializeImpControl();
   //For testing motors
   //GB4315motor.disable();
   //GB6010motor.disable();
@@ -175,40 +175,60 @@ void loop() {
     //to harder settings under normal situation, add single counter so that else statement doesnt always slow down loop
   }
 
+  //standard position control
+  // GB6025motor.loopFOC();
+  // GB6025motor.move(target_Angle_0);
+
+  // GB6010motor.loopFOC();
+  // GB6010motor.move(target_Angle_1);
+
+  // // Add GB4315 motor control
+  // GB4315motor.loopFOC();
+  // GB4315motor.move(target_Angle_2); 
+
+  
+  float* torque_imp = loopImpControl();
+
+  //Impedance J0 to J2
+  for (int i = 0; i<3;i++ ){
+
+    float torque_cmd = torque_imp[i];
+      
+    float current_cmd = torque_cmd/Joint_motor[i]->torque_constant;
+
+    float current_max = getMotorCharacteristics(i).current_limit;
+
+    current_cmd = constrain(current_cmd,-current_max,current_max);
+
+    Joint_motor[i]->loopFOC();
+    Joint_motor[i]->move(current_cmd);
+
+  }
 
 
-  GB6025motor.loopFOC();
-  GB6025motor.move(target_Angle_0);
+  // //test branch: impedance control only on 6010motor, used as reference for full implementation
+  // float dtheta =GB6010motor.shaft_velocity;
+  // float theta = GB6010motor.shaft_angle;
 
-  //test branch: impedance control only on 6010motor
-  float dtheta =GB6010motor.shaft_velocity;
-  float theta = GB6010motor.shaft_angle;
+  // float torque_cmd = 
+  //     -K_spring * (theta - target_Angle_1)
+  //     -D_damper * dtheta;
 
-  float torque_cmd = 
-      -K_spring * (theta - target_Angle_1)
-      -D_damper * dtheta;
+  // torque_cmd = constrain(torque_cmd,-0.9f,2.0f);
+  // torque_cmd = torque_cmd/0.61f;
 
-  torque_cmd = constrain(torque_cmd,-0.9f,2.0f);
-  torque_cmd = torque_cmd/0.61f;
-
-  GB6010motor.loopFOC();
-  GB6010motor.move(target_Angle_1);
-
-  // Add GB4315 motor control
-  GB4315motor.loopFOC();
-  GB4315motor.move(target_Angle_2); 
-
+  
   static uint32_t last_debug = 0;
   
 
   if(micros() - last_debug > 10000) {  // Print every 10 miilisecond
-    //prints pos endeffector in joint space for Unity controller(rate limited)
-    //printPose();
+    //prints pos endeffector in Joint_motor space for Unity controller(rate limited)
+    printPose();
     //printRawSensorAngles();
     //additional print
-    Jacobian J = calculateJacobian();
-    printJacobian(J);
-    checkJacobian(J);
+    //Jacobian J = calculateJacobian();
+    //printJacobian(J);
+    //checkJacobian(J);
     // Serial.print("\n");
     // Serial.print("Current Angle: \n");
     // Serial.println(GB6025motor.shaftAngle(),3);

@@ -53,9 +53,9 @@ void updateAllEncoders() {
     sensor0.update();
     sensor1.update();
     sensor2.update();
-    // sensor3.update();
-    // sensor4.update();
-    // sensor5.update();
+    sensor3.update();
+    sensor4.update();
+    sensor5.update();
 }
 
 void printAllEncoders() {

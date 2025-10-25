@@ -2,6 +2,7 @@
 #include "boardConfig.h"
 #include "motorConfig.h"
 #include "kinematicsConfig.h"
+#include "impControlConfig.h"
 
 #ifndef MAIN_CONFIG_H
 #define MAIN_CONFIG_H

@@ -11,9 +11,9 @@ typedef struct {
     float angular[3];  // wx, wy, wz
 } JointVelocity;
 
-typedef struct {
-    float data[6][3];
-} Jacobian;
+struct Jacobian {
+    float data[6][NUMBER_OF_JOINTS];  // Changed from hardcoded [6][3]
+};
 
 // Calculate the Jacobian matrix for the current robot configuration
 // Returns a 6x3 matrix representing the Jacobian
@@ -34,12 +34,8 @@ void printJacobian(void);
 void printJacobian(const Jacobian &jacobian);
 
 // Get joint velocities
-void getJointVelocities(float velocities[3]);
-
-
-// Calculate end-effector velocity from joint velocities using the Jacobian
-void calculateEndEffectorVelocity(const Jacobian &jacobian, float joint_velocities[3], float ee_velocity[6]);
-
+void getJointVelocities(float velocities[NUMBER_OF_JOINTS]);
+void calculateEndEffectorVelocity(const Jacobian &jacobian, float joint_velocities[NUMBER_OF_JOINTS], float ee_velocity[6]);
 //checker function
 void checkJacobian(void);
 void checkJacobian(const Jacobian &J);

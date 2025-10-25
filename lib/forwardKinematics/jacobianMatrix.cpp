@@ -31,10 +31,14 @@ void crossProduct(const float a[3], const float b[3], float result[3]) {
 }
 
 // Get joint angular velocities in rad/s
-void getJointVelocities(float velocities[3]) {
+void getJointVelocities(float velocities[NUMBER_OF_JOINTS]) {
     velocities[0] = GB6025motor.shaftVelocity();
     velocities[1] = GB6010motor.shaftVelocity();
     velocities[2] = GB4315motor.shaftVelocity();
+    // When you have 6 joints, add:
+    // velocities[3] = GB3510motor.shaftVelocity();
+    // velocities[4] = GB3510motor.shaftVelocity();
+    // velocities[5] = JC2804motor.shaftVelocity();
 }
 
 // Calculate the Jacobian matrix
@@ -194,15 +198,16 @@ void printJacobian(const Jacobian &jacobian) {
 
 
 // Calculate end-effector velocity from joint velocities using the Jacobian
-void calculateEndEffectorVelocity(const Jacobian &jacobian, float joint_velocities[3], float ee_velocity[6]) {
+void calculateEndEffectorVelocity(const Jacobian &jacobian, float joint_velocities[NUMBER_OF_JOINTS], float ee_velocity[6]) {
     // Initialize ee_velocity to zero
     for (int i = 0; i < 6; i++) {
         ee_velocity[i] = 0.0f;
     }
     
     // Multiply Jacobian by joint velocities
+    // Jacobian is [6 x NUMBER_OF_JOINTS]
     for (int i = 0; i < 6; i++) {
-        for (int j = 0; j < 3; j++) {
+        for (int j = 0; j < NUMBER_OF_JOINTS; j++) {
             ee_velocity[i] += jacobian.data[i][j] * joint_velocities[j];
         }
     }

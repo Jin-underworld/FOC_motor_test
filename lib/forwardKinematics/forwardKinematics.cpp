@@ -87,9 +87,9 @@ Pose6D forwardKinematics(void) {
     // printMatrix(TGE, "Final Transform TGE");
 
     Pose6D pose;
-    pose.x = TG3[0][3];
-    pose.y = TG3[1][3];
-    pose.z = TG3[2][3];
+    pose.x = TGE[0][3];
+    pose.y = TGE[1][3];
+    pose.z = TGE[2][3];
 
     // Extract Euler angles (ZYX convention)
     pose.pitch = atan2f(-TGE[2][0], sqrtf(TGE[0][0]*TGE[0][0] + TGE[1][0]*TGE[1][0]));

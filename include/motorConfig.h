@@ -49,7 +49,7 @@
 // Joint 0 Configuration (GB6025 installed as base joint)
 #define JOINT0_ZE_ANGLE 4.29f
 #define JOINT0_SENSOR_DIRECTION Direction::CCW
-#define JOINT0_ZERO_CALIBRATED_ANGLE 0.423f//-5.880f
+#define JOINT0_ZERO_CALIBRATED_ANGLE -0.423f//-5.880f
 #define JOINT0_HOME_ANGLE 0.0f
 #define JOINT0_UPPER_LIMIT 0.785f
 #define JOINT0_LOWER_LIMIT -0.785f
@@ -65,8 +65,8 @@
 // Joint 2 Configuration (GB4315 installed as elbow joint)
 #define JOINT2_ZE_ANGLE 5.68f
 #define JOINT2_SENSOR_DIRECTION Direction::CCW
-#define JOINT2_ZERO_CALIBRATED_ANGLE 4.013f//(-4.331f + 2.134f)
-#define JOINT2_HOME_ANGLE (0.75f * M_PI)
+#define JOINT2_ZERO_CALIBRATED_ANGLE -2.146f//(-4.331f + 2.134f)
+#define JOINT2_HOME_ANGLE 0.75f * M_PI
 #define JOINT2_UPPER_LIMIT (2.628f - 0.001f)
 #define JOINT2_LOWER_LIMIT (0.005f - 0.001f)
 

@@ -104,11 +104,6 @@ void setup() {
   initializeMotorControllers();
   initializeMotorParameters();
   initializeMotors();
-  if (TIM1->CR1 & TIM_CR1_CEN) {  // If TIM1 is enabled
-      TIM1->BDTR |= TIM_BDTR_MOE;   // Enable Main Output
-      TIM1->BDTR &= ~TIM_BDTR_BKE;  // Disable break
-      Serial2.println("✓ TIM1 MOE force-enabled");
-    }
   
 
   //command.add('M',doMotor,"motor");
@@ -124,7 +119,8 @@ void setup() {
     //Serial2.print("Motorshaft: \n");
     //printRawMotorAngles();  //with sensor zero offset
     Serial2.print("Raw Mech ENC: \n");
-    printAllMechEncoders(); //no sensor offset
+    printAllEncoders();
+    //printAllMechEncoders(); //no sensor offset
     // Serial2.print("Current Angle: \n");
     // Serial2.println(getMotorRawAngle(Joint_motor[0]),3);
     // Serial2.println(getMotorRawAngle(Joint_motor[1]),3);
@@ -175,7 +171,11 @@ void setup() {
 
 
 void loop() {
-    
+  //Target angle constrains
+//   float target_Angle_0 = constrain(target_Angle_0,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
+//   float target_Angle_1 = constrain(target_Angle_1,JOINT1_LOWER_LIMIT,JOINT1_UPPER_LIMIT);
+//   float target_Angle_2 = constrain(target_Angle_2,JOINT2_LOWER_LIMIT,JOINT2_UPPER_LIMIT);
+//   float target_Angle_3 = constrain(target_Angle_3,JOINT3_LOWER_LIMIT,JOINT3_UPPER_LIMIT);
   
   
   
@@ -273,12 +273,12 @@ void loop() {
       // Wait for button release
       ButtonChecker();
       delay(10);
-      printPose();
+      //printPose();
       // Serial2.print("press button again to exit error loop.");
     }
 
     Serial2.println("Exiting error loop. Resuming operation.");
-    printPose();
+    //printPose();
     sensor0.update();
     target_Angle_0 = getMotorRawAngle(Joint_motor[0]); // Set target to current position
 

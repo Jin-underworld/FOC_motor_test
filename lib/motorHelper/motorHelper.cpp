@@ -85,10 +85,10 @@ BLDCDriver3PWM* Joint_driver[ACTIVE_JOINTS] = {
 };
 
 //Target angle constrains
-float target_Angle_0 = constrain(JOINT_CONFIGS[JOINT_0].home_angle,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
-float target_Angle_1 = constrain(JOINT_CONFIGS[JOINT_1].home_angle,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
-float target_Angle_2 = constrain(JOINT_CONFIGS[JOINT_2].home_angle,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
-float target_Angle_3 = constrain(JOINT_CONFIGS[JOINT_3].home_angle,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
+float target_Angle_0 = JOINT_CONFIGS[JOINT_0].home_angle;//,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
+float target_Angle_1 = JOINT_CONFIGS[JOINT_1].home_angle;//,JOINT1_LOWER_LIMIT,JOINT1_UPPER_LIMIT);
+float target_Angle_2 = JOINT_CONFIGS[JOINT_2].home_angle;//,JOINT2_LOWER_LIMIT,JOINT2_UPPER_LIMIT);
+float target_Angle_3 = JOINT_CONFIGS[JOINT_3].home_angle;//,JOINT3_LOWER_LIMIT,JOINT3_UPPER_LIMIT);
 //float target_Angle_4 = constrain(JOINT_CONFIGS[JOINT_4].home_angle,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
 
 
@@ -175,7 +175,13 @@ void initializeMotorControllers() {
   Serial2.println("All motor controllers initialized");
 }
 
+// TUNER VERY IMPORTANT //
+// TUNER VERY IMPORTANT //
+// TUNER VERY IMPORTANT //
 bool Motor_Calib[ACTIVE_JOINTS] = {0,0,0,0};
+// TUNER VERY IMPORTANT //
+// TUNER VERY IMPORTANT //
+// TUNER VERY IMPORTANT //
 
 // Initialize motors with FOC using lookup tables ORD4
 void initializeMotors() {
@@ -183,6 +189,7 @@ void initializeMotors() {
     const JointConfiguration& joint_cfg = JOINT_CONFIGS[i];
     const MotorCharacteristics& motor_char = getMotorCharacteristics((JointNumber)i);
     
+    Joint_motor[i]->enableMechanicalMode();
     
     if(!Motor_Calib[i]){  
       Joint_motor[i]->zero_electric_angle = joint_cfg.zero_electric_angle;
@@ -226,16 +233,16 @@ void initializeMotorParameters() {
 
   // GB6025 motor parameters
   //velocity PI controller parameters
-  GB6025motor.PID_velocity.P = 0.5f;
-  GB6025motor.PID_velocity.I = 3.2f;
+  GB6025motor.PID_velocity.P = 0.2f;
+  GB6025motor.PID_velocity.I = 0.8f;
   GB6025motor.PID_velocity.D = 0.0f;
-  GB6025motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
-  GB6025motor.P_angle.P = 4.0f;
+  GB6025motor.LPF_velocity.Tf = 0.15; // filter for velocity, needs to be around 0.05s
+  GB6025motor.P_angle.P = 1.5f;
   GB6025motor.P_angle.I = 0.0f;
-  GB6025motor.P_angle.D = 5.2f;
-  GB6025motor.P_angle.output_ramp = 0.2f;
-  GB6025motor.LPF_angle.Tf = 0.12f;
-  GB6025motor.velocity_limit = 20.0f;
+  GB6025motor.P_angle.D = 0.8f;
+  GB6025motor.P_angle.output_ramp = 0.1f;
+  GB6025motor.LPF_angle.Tf = 0.2f;
+  GB6025motor.velocity_limit = 15.0f;
 
   // GB6010 motor parameters
   //velocity PI controller parameters
@@ -265,16 +272,16 @@ void initializeMotorParameters() {
 
   //GB3510_3 motor parameters
   //velocity PI controller parameters
-  GB3510_3_motor.PID_velocity.P = 0.5f;
-  GB3510_3_motor.PID_velocity.I = 3.2f;
+  GB3510_3_motor.PID_velocity.P = 0.1f;
+  GB3510_3_motor.PID_velocity.I = 0.3f;
   GB3510_3_motor.PID_velocity.D = 0.0f;
-  GB3510_3_motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
-  GB3510_3_motor.P_angle.P = 2.0f;
+  GB3510_3_motor.LPF_velocity.Tf = 0.25f; // filter for velocity, needs to be around 0.05s
+  GB3510_3_motor.P_angle.P = 0.8f;
   GB3510_3_motor.P_angle.I = 0.0f;
-  GB3510_3_motor.P_angle.D = 4.2f;
-  GB3510_3_motor.P_angle.output_ramp = 0.2f;
-  GB3510_3_motor.LPF_angle.Tf = 0.12f;
-  GB3510_3_motor.velocity_limit = 20.0f;
+  GB3510_3_motor.P_angle.D = 0.3f;
+  GB3510_3_motor.P_angle.output_ramp = 0.03f;
+  GB3510_3_motor.LPF_angle.Tf = 0.3f;
+  GB3510_3_motor.velocity_limit = 8.0f;
 
   // //GB3510_4 motor parameters
   // //velocity PI controller parameters
@@ -397,4 +404,100 @@ float raw_angle = motor->sensor_direction * motor->sensor->getMechanicalAngle() 
 
 // Normalize to 0-2π range
 return _normalizeAngle(raw_angle);
+}
+
+// Override move function in ExtendedBLDCMotor
+void ExtendedBLDCMotor::move(float new_target) {
+    if (use_mechanical_only) {
+        // MECHANICAL-ONLY MODE: Use 0-2π range, no revolution tracking
+        
+        // Set internal target variable
+        if (_isset(new_target)) target = new_target;
+        
+        // Normalize target to 0-2π range
+        target = _normalizeAngle(target);
+        
+        // Downsampling (optional)
+        if (motion_cnt++ < motion_downsample) return;
+        motion_cnt = 0;
+
+        // Get current mechanical angle (0-2π range)
+        float current_mechanical_angle = getMechanicalShaftAngle();
+        
+        // Calculate mechanical velocity
+        unsigned long now_us = _micros();
+        float Ts = (now_us - prev_timestamp_mech) * 1e-6f;
+        if (Ts <= 0 || Ts > 0.5f) Ts = 1e-3f; // Sanity check
+        
+        if (prev_timestamp_mech != 0) {
+            float angle_diff = calculateShortestAngleDifference(current_mechanical_angle, prev_mechanical_angle);
+            shaft_velocity = angle_diff / Ts;
+        }
+        
+        // Store for next iteration
+        prev_mechanical_angle = current_mechanical_angle;
+        prev_timestamp_mech = now_us;
+        
+        // Update shaft_angle to current mechanical angle (no revolution tracking)
+        shaft_angle = current_mechanical_angle;
+
+        // If disabled do nothing
+        if (!enabled) return;
+        
+        // Calculate the back-emf voltage if KV_rating available
+        if (_isset(KV_rating)) voltage_bemf = shaft_velocity / (KV_rating * _SQRT3) / _RPM_TO_RADS;
+        
+        // Estimate the motor current if phase resistance available and current_sense not available
+        if (!current_sense && _isset(phase_resistance)) current.q = (voltage.q - voltage_bemf) / phase_resistance;
+
+        // Control logic for angle mode
+        if (controller == MotionControlType::angle) {
+            // Calculate shortest angular difference for position control
+            float angle_error = calculateShortestAngleDifference(target, current_mechanical_angle);
+            
+            // Angle set point (use current + error to avoid wrapping issues)
+            shaft_angle_sp = current_mechanical_angle + angle_error;
+            
+            // Calculate velocity set point
+            shaft_velocity_sp = feed_forward_velocity + P_angle(angle_error);
+            shaft_velocity_sp = _constrain(shaft_velocity_sp, -velocity_limit, velocity_limit);
+            
+            // Calculate the torque command
+            current_sp = PID_velocity(shaft_velocity_sp - shaft_velocity);
+            
+            // If torque controlled through voltage
+            if (torque_controller == TorqueControlType::voltage) {
+                if (!_isset(phase_resistance)) voltage.q = current_sp;
+                else voltage.q = _constrain(current_sp * phase_resistance + voltage_bemf, -voltage_limit, voltage_limit);
+                
+                if (!_isset(phase_inductance)) voltage.d = 0;
+                else voltage.d = _constrain(-current_sp * shaft_velocity * pole_pairs * phase_inductance, -voltage_limit, voltage_limit);
+            }
+        } else {
+            // For other control modes, use base class behavior but with mechanical angles
+            BLDCMotor::move(new_target);
+        }
+        
+    } else {
+        // FULL ROTATION MODE: Use original SimpleFOC behavior
+        BLDCMotor::move(new_target);
+    }
+}
+
+float ExtendedBLDCMotor::getMechanicalShaftAngle() {
+    if (!sensor) return 0;
+    
+    // Use your existing function to get mechanical angle in 0-2π range
+    return getMotorRawAngle(this);
+}
+
+float ExtendedBLDCMotor::calculateShortestAngleDifference(float target, float current) {
+    // Calculate the difference between target and current angle
+    float diff = target - current;
+    
+    // Wrap to [-π, π] to find shortest path
+    while (diff > _PI) diff -= _2PI;
+    while (diff < -_PI) diff += _2PI;
+    
+    return diff;
 }

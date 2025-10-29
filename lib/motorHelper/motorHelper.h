@@ -31,7 +31,30 @@ public:
         if (torque_constant == NOT_SET || torque_constant == 0) return 0;
         return desired_torque / torque_constant;
     }
+
+    // Flag to enable mechanical-only mode (0-2π range, no revolution tracking)
+    bool use_mechanical_only;
+    
+    // Override move function to support both modes
+    void move(float new_target = NOT_SET) override;
+
+    // Helper functions for mechanical-only mode
+    float getMechanicalShaftAngle();
+    float calculateShortestAngleDifference(float target, float current);
+
+    // Mode switching functions
+    void enableMechanicalMode() { use_mechanical_only = true; }
+    void enableFullRotationMode() { use_mechanical_only = false; }
+
+private:
+    // Store previous mechanical angle for velocity calculation (mechanical mode only)
+    float prev_mechanical_angle = 0;
+    unsigned long prev_timestamp_mech = 0;
+    
 };
+
+
+
 
 // Motor and driver declarations
 extern ExtendedBLDCMotor GB6025motor;

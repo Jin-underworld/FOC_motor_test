@@ -12,8 +12,8 @@ MultiplexedMagneticSensorI2C sensor2(&multiplexer_tran, 2, AS5600_I2C);
 // MultiplexedMagneticSensorI2C sensorBarrier(&multiplexer_tran, 3, AS5600_I2C);
 MultiplexedMagneticSensorI2C sensor3(&multiplexer_tran, 3, AS5600_I2C);
 MultiplexedMagneticSensorI2C sensor4(&multiplexer_tran, 4, AS5600_I2C);
-MultiplexedMagneticSensorI2C sensor5(&multiplexer_tran, 2, AS5600_I2C);
-MultiplexedMagneticSensorI2C sensor6(&multiplexer_tran, 3, AS5600_I2C);
+MultiplexedMagneticSensorI2C sensor5(&multiplexer_tran, 5, AS5600_I2C);
+MultiplexedMagneticSensorI2C sensor6(&multiplexer_tran, 6, AS5600_I2C);
 
 // Constructor implementation - fix the parameter names
 MultiplexedMagneticSensorI2C::MultiplexedMagneticSensorI2C(DFRobot_I2C_Multiplexer *_multiplexer, uint8_t _port, MagneticSensorI2CConfig_s _config)
@@ -156,3 +156,4 @@ void printAllJointAngles() {
     }
     Serial2.println("]");
 }
+

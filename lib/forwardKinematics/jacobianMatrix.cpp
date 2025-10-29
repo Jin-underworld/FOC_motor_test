@@ -321,7 +321,7 @@ void checkJacobian(const Jacobian &J) {
 
     // Assume J is your analytical Jacobian already computed for 'theta'
 
-    for (int joint = 0; joint < NUMBER_OF_JOINTS; ++joint) {
+    for (int joint = 0; joint < 3; ++joint) {
         Serial.print("Joint "); Serial.print(joint); Serial.print(": ");
 
         // Forward (one-sided) difference

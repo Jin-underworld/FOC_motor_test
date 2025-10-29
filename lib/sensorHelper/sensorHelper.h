@@ -8,7 +8,8 @@
 
 // I2C configuration
 extern TwoWire Wire2;
-extern DFRobot_I2C_Multiplexer multiplexer;
+extern DFRobot_I2C_Multiplexer multiplexer_tran;
+//extern DFRobot_I2C_Multiplexer multiplexer_wrist;
 
 // Custom class that wraps MagneticSensorI2C to work with I2C multiplexer
 class MultiplexedMagneticSensorI2C : public MagneticSensorI2C {
@@ -34,11 +35,15 @@ extern MultiplexedMagneticSensorI2C sensor2;
 extern MultiplexedMagneticSensorI2C sensor3;
 extern MultiplexedMagneticSensorI2C sensor4;
 extern MultiplexedMagneticSensorI2C sensor5;
+extern MultiplexedMagneticSensorI2C sensor6;
 
 // Function declarations
 void initializeI2CMultiplexer();
 void initializeSensors();
 void updateAllEncoders();
 void printAllEncoders();
+void printAllMechEncoders();
+float getAllJointAngles(int sensornumber);
+void printAllJointAngles();
 
 #endif // SENSOR_HELPER_H

@@ -10,7 +10,8 @@
 
 #define GRAVITY 9.81f      // m/s^2
 //global frame is the centre of the base, below J0, at table level
-#define NUMBER_OF_JOINTS 3
+#define NUMBER_OF_JOINTS 7
+#define ACTIVE_JOINTS 4
 
 #define GLOBAL_TO_JOINT0_LENGTH 62.5f
 #define LINK0_LENGTH 160.0f
@@ -25,10 +26,10 @@
 
 // DH parameters for your robot
 // global frame is below J0!!
-static const float THETA_OFFSET[NUMBER_OF_JOINTS] = {0.0f, 0.0f, 0.0f};  // Angle around z axis (deg)
-static const float ALPHA_DH[NUMBER_OF_JOINTS] = {M_PI/2, M_PI, 0.0f};      // Twist angle around X axis (deg)
-static const float D_DH[NUMBER_OF_JOINTS]     = {LINK0_LENGTH, 0.0f, 0.0f}; // Link offset along Z axis (mm)
-static const float R_DH[NUMBER_OF_JOINTS]     = {0.0f, LINK1_LENGTH, LINK2_LENGTH}; // Link length along X axis (mm)
+static const float THETA_OFFSET[NUMBER_OF_JOINTS] = {0.0f , 0.0f, 0.0f};  // Angle around z axis (deg)
+static const float ALPHA_DH[NUMBER_OF_JOINTS] =     {M_PI/2, M_PI, 0.0f};      // Twist angle around X axis (deg)
+static const float D_DH[NUMBER_OF_JOINTS]     =     {LINK0_LENGTH, 0.0f, 0.0f}; // Link offset along Z axis (mm)
+static const float R_DH[NUMBER_OF_JOINTS]     =     {0.0f, LINK1_LENGTH, LINK2_LENGTH}; // Link length along X axis (mm)
 
 // Base to first joint transform
 inline static const float TG0[4][4] = {

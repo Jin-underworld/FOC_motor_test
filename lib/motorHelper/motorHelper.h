@@ -6,7 +6,7 @@
 #include "../../include/main.h"
 
 // in the order of base_joint (joint0, sensor0) to joint 5 (total 6 joints, zero indexing/)
-// gb6025, gb6010, gb4315, gb3510, gb2806, gb2806
+// gb6025, gb6010, gb4315, gb3510, gb3510, gb2806
 // declarations should be in this order!
 
 // Extended ExtendedBLDCMotor class with torque constant
@@ -40,15 +40,22 @@ extern ExtendedBLDCMotor GB6010motor;
 extern BLDCDriver3PWM GB6010driver;
 extern ExtendedBLDCMotor GB4315motor;
 extern BLDCDriver3PWM GB4315driver;
+extern ExtendedBLDCMotor GB3510_3_motor;
+extern BLDCDriver3PWM GB3510_3_driver;
+extern ExtendedBLDCMotor GB3510_4_motor;
+extern BLDCDriver3PWM GB3510_4_driver;
+
 
 // Arrays for iteration - CHANGED: Added these
-extern ExtendedBLDCMotor* Joint_motor[NUMBER_OF_JOINTS];
-extern float* target_angles[NUMBER_OF_JOINTS];
+extern ExtendedBLDCMotor* Joint_motor[ACTIVE_JOINTS];
+//extern float* target_angles[NUMBER_OF_JOINTS];
 
 // Target angle variables , zero indexing 
 extern float target_Angle_0;
 extern float target_Angle_1;
 extern float target_Angle_2;
+extern float target_Angle_3;
+extern float target_Angle_4;
 
 struct MotorConfig {
     ExtendedBLDCMotor* motor;
@@ -70,7 +77,7 @@ void initializeMotors();
 bool checkstarting(const MotorConfig& config);
 bool goToHomePosition(const MotorConfig& config, unsigned long timeout_ms = 5000);
 void doTarget(char* cmd);
-void printRawSensorAngles(void);
+void printRawMotorAngles(void);
 float getMotorRawAngle(ExtendedBLDCMotor* motor);
 
 
@@ -78,6 +85,7 @@ float getMotorRawAngle(ExtendedBLDCMotor* motor);
 extern MotorConfig gb6025_config;
 extern MotorConfig gb6010_config;
 extern MotorConfig gb4315_config;
+extern MotorConfig gb3510_config;
 
 
 

@@ -9,7 +9,7 @@
 
 bool useFakeImpedance = false; //Set if you want to use the fake Impedance controller
 
-Commander command = Commander(Serial);
+Commander command = Commander(Serial2);
 //void doMotor(char *cmd) { command.motor(&GB4315motor, cmd); }
 
 // Control State Variables
@@ -61,7 +61,7 @@ extern "C" void __attribute__((weak)) HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   
   if(GPIO_Pin == BUTTON_PIN && (current_time - last_debounce_time) > 200)
   {
-    Serial.println("Button Interrupt!");
+    Serial2.println("Button Interrupt!");
     
   }
 }
@@ -69,7 +69,7 @@ extern "C" void __attribute__((weak)) HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 void setup() {
   
   // Enable GPIOA clock
-  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   
   // Enable SYSCFG clock
   __HAL_RCC_SYSCFG_CLK_ENABLE();
@@ -85,86 +85,101 @@ void setup() {
   // Configure NVIC
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-
-  Serial.begin(BAUD_RATE);
-  Serial.println("Hi");
-  initializeSensors();
-
-  SimpleFOCDebug::enable(&Serial);
+  Serial2.setTx(PD5);  // USART2_TX on PD5
+  Serial2.setRx(PD6);  // USART2_RX on PD6
+  Serial2.begin(115200);
+//   Serial2.begin(BAUD_RATE);
+  delay(100);
+  Serial2.println("Serial2 initialised!");
+  SimpleFOCDebug::enable(&Serial2);
   
+   
   //initialise sensors
   initializeI2CMultiplexer();
-  initializeSensors();
-  SimpleFOCDebug::enable(&Serial);
-  
+  initializeSensors(); 
+
   //initialise motors
   linkMotorsToSensors();
   initializeMotorDrivers();
   initializeMotorControllers();
   initializeMotorParameters();
   initializeMotors();
+  if (TIM1->CR1 & TIM_CR1_CEN) {  // If TIM1 is enabled
+      TIM1->BDTR |= TIM_BDTR_MOE;   // Enable Main Output
+      TIM1->BDTR &= ~TIM_BDTR_BKE;  // Disable break
+      Serial2.println("✓ TIM1 MOE force-enabled");
+    }
+  
 
   //command.add('M',doMotor,"motor");
   command.add('T', doTarget, "target angle");
 
   //Wait for button press with debounce
-  Serial.println("Waiting for button press to start homing sequence...");
+  Serial2.println("Waiting for button press to start homing sequence...");
   while (!buttonPressed) {
     // Optional: Add watchdog or timeout
     ButtonChecker();
-    updateAllEncoders();
-
-    Serial.print("Current Angle: \n");
-    Serial.println(getMotorRawAngle(Joint_motor[0]),3);
-    Serial.println(getMotorRawAngle(Joint_motor[1]),3);
-    Serial.println(getMotorRawAngle(Joint_motor[2]),3);
+    //printPose();
+    // updateAllEncoders();
+    //Serial2.print("Motorshaft: \n");
+    //printRawMotorAngles();  //with sensor zero offset
+    Serial2.print("Raw Mech ENC: \n");
+    printAllMechEncoders(); //no sensor offset
+    // Serial2.print("Current Angle: \n");
+    // Serial2.println(getMotorRawAngle(Joint_motor[0]),3);
+    // Serial2.println(getMotorRawAngle(Joint_motor[1]),3);
+    // Serial2.println(getMotorRawAngle(Joint_motor[2]),3);
     delay(10); // Small delay to prevent tight loop
   }
 
-  updateAllEncoders();
+  //updateAllEncoders();
   
 //   if (checkstarting(gb6025_config)) {
-//     Serial.println("Enter Error Loop: Motor not in starting position!");
+//     Serial2.println("Enter Error Loop: Motor not in starting position!");
 //     while(1); // Halt execution
 //   }
 
 //   if (checkstarting(gb6010_config)) {
-//     Serial.println("Enter Error Loop: Motor not in starting position!");
+//     Serial2.println("Enter Error Loop: Motor not in starting position!");
 //     while(1); // Halt execution
 //   }
 
 //   if (checkstarting(gb4315_config)) {
-//     Serial.println("Enter Error Loop: GB4315 Motor not in starting position!");
+//     Serial2.println("Enter Error Loop: GB4315 Motor not in starting position!");
 //     while(1); // Halt execution
 // }
 //   // Execute homing sequence
   
-  delay(1000);
-  Serial.println("Starting homing sequence...");
+//   delay(1000);
+  Serial2.println("Starting homing sequence...");
   
   // goToHomePosition(gb6025_config);
   // goToHomePosition(gb6010_config);
   // goToHomePosition(gb4315_config);
   
-  Serial.println("Homing sequence completed. Motor is at home position.");
+  Serial2.println("Homing sequence completed. Motor is at home position.");
   ButtonReset(); // Reset button press flag
-  initializeImpControl();
-  //For testing motors
-  //GB4315motor.disable();
-  //GB6010motor.disable();
-  //GB6025motor.disable();
 
-  
+  //initializeImpControl();
+  //For testing motors
+  //Joint_motor[0]->disable();
+  //Joint_motor[1]->disable();
+  //Joint_motor[2]->disable();
+  //Joint_motor[3]->disable();
+
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
-float K_spring = 2.0f; //spring Constant (Nm/rad)
-float D_damper = 0.7f; //Damping constant (Nm/(rad/s))
+// float K_spring = 2.0f; //spring Constant (Nm/rad)
+// float D_damper = 0.7f; //Damping constant (Nm/(rad/s))
 
 
 void loop() {
-
-  //readAllEncoders();
+    
   
+  
+  
+  //Serial2.print("heartbeat\n");
   ButtonChecker();
   if(buttonPressed&&useFakeImpedance){
     target_Angle_0 = GB6025motor.shaftAngle();
@@ -176,34 +191,38 @@ void loop() {
   }
 
   //standard position control
-  // GB6025motor.loopFOC();
-  // GB6025motor.move(target_Angle_0);
+  digitalWrite(LED_BUILTIN, HIGH);
+  Joint_motor[0]->loopFOC();
+  Joint_motor[0]->move(target_Angle_0);
 
-  // GB6010motor.loopFOC();
-  // GB6010motor.move(target_Angle_1);
+  Joint_motor[1]->loopFOC();
+  Joint_motor[1]->move(target_Angle_1);
 
-  // // Add GB4315 motor control
-  // GB4315motor.loopFOC();
-  // GB4315motor.move(target_Angle_2); 
+  Joint_motor[2]->loopFOC();
+  Joint_motor[2]->move(target_Angle_2);
+  digitalWrite(LED_BUILTIN, LOW);
+
+  Joint_motor[3]->loopFOC();
+  Joint_motor[3]->move(target_Angle_3);
 
   
-  float* torque_imp = loopImpControl();
+  //float* torque_imp = loopImpControl();
 
   //Impedance J0 to J2
-  for (int i = 0; i<3;i++ ){
+//   for (int i = 0; i<3;i++ ){
 
-    float torque_cmd = torque_imp[i];
+//     float torque_cmd = torque_imp[i];
       
-    float current_cmd = torque_cmd/Joint_motor[i]->torque_constant;
+//     float current_cmd = torque_cmd/Joint_motor[i]->torque_constant;
 
-    float current_max = getMotorCharacteristics(i).current_limit;
+//     float current_max = getMotorCharacteristics(i).current_limit;
 
-    current_cmd = constrain(current_cmd,-current_max,current_max);
+//     current_cmd = constrain(current_cmd,-current_max,current_max);
 
-    Joint_motor[i]->loopFOC();
-    Joint_motor[i]->move(current_cmd);
+//     Joint_motor[i]->loopFOC();
+//     Joint_motor[i]->move(current_cmd);
 
-  }
+//   }
 
 
   // //test branch: impedance control only on 6010motor, used as reference for full implementation
@@ -219,78 +238,67 @@ void loop() {
 
   
   static uint32_t last_debug = 0;
-  
 
-  if(micros() - last_debug > 10000) {  // Print every 10 miilisecond
+  if(micros() - last_debug > 100) {  // Print every 10 miilisecond
     //prints pos endeffector in Joint_motor space for Unity controller(rate limited)
-    printPose();
+    //printPose();
     //printRawSensorAngles();
+    printRawMotorAngles();
     //additional print
     //Jacobian J = calculateJacobian();
     //printJacobian(J);
     //checkJacobian(J);
-    // Serial.print("\n");
-    // Serial.print("Current Angle: \n");
-    // Serial.println(GB6025motor.shaftAngle(),3);
-    // Serial.println(GB6010motor.shaftAngle(),3);
-    // Serial.println(GB4315motor.shaftAngle(),3);
+    // Serial2.print("\n");
+    Serial2.print("Current Angle: \n");
+    Serial2.print("J0: \n");Serial2.println(target_Angle_0,3);
+    Serial2.print("J1: \n");Serial2.println(target_Angle_1,3);
+    Serial2.print("J2: \n");Serial2.println(target_Angle_2,3);
+    Serial2.print("J3: \n");Serial2.println(target_Angle_3,3);
     last_debug = micros();
   }
 
-  // if(millis() - last_debug > 500) {  // Print every 500ms
-  //   Serial.print("Target angle1: ");
-  //   Serial.print(target_Angle_1);
-  //   Serial.print(" Current angle1: ");
-  //   Serial.println(GB6010motor.shaftAngle(), 3);
-  //   last_debug = millis();
-  // }
-
-  // if(millis() - last_debug2 > 500) {  // Print every 500ms
-  //   Serial.print("Target angle2: ");
-  //   Serial.print(target_Angle_2);
-  //   Serial.print(" Current angle2: ");
-  //   Serial.println(GB4315motor.shaftAngle(), 3);
-  //   last_debug2 = millis();
-  // }
 
   command.run();
-
-  
 
   if (buttonPressed && !useFakeImpedance) {
     delay(50); // Debounce delay
     
-    Serial.println("Button pressed! Entering error loop.");
-    GB6025motor.disable();
-    GB6010motor.disable();
-    GB4315motor.disable();
+    Serial2.println("Button pressed! Entering error loop.");
+    Joint_motor[0]->disable();
+    Joint_motor[1]->disable();
+    Joint_motor[2]->disable();
+    Joint_motor[3]->disable();
 
     while (buttonPressed) {
       // Wait for button release
       ButtonChecker();
       delay(10);
       printPose();
-      // Serial.print("press button again to exit error loop.");
+      // Serial2.print("press button again to exit error loop.");
     }
 
-    Serial.println("Exiting error loop. Resuming operation.");
+    Serial2.println("Exiting error loop. Resuming operation.");
     printPose();
-    GB6025motor.enable();
     sensor0.update();
-    target_Angle_0 = GB6025motor.shaftAngle(); // Set target to current position
+    target_Angle_0 = getMotorRawAngle(Joint_motor[0]); // Set target to current position
 
-    GB6010motor.enable();
     sensor1.update();
-    target_Angle_1 = GB6010motor.shaftAngle(); // Set target to current position
-
-    GB4315motor.enable();
+    target_Angle_1 = getMotorRawAngle(Joint_motor[1]); // Set target to current position
     sensor2.update();
-    target_Angle_2 = GB4315motor.shaftAngle(); // Set target to current position
+    target_Angle_2 = getMotorRawAngle(Joint_motor[2]); // Set target to current position
+
+    sensor3.update();
+    target_Angle_3 = getMotorRawAngle(Joint_motor[3]); // Set target to current position
+
+    Joint_motor[0]->enable();
+    Joint_motor[1]->enable();
+    Joint_motor[2]->enable();
+    Joint_motor[3]->enable();
 
   }
 
-  // Serial.println("\n=== I2C Scanner ===");
-  // Serial.println("Scanning main I2C bus...");
+  // Serial2.println("\n=== I2C Scanner ===");
+  // Serial2.println("Scanning main I2C bus...");
   // byte nDevices = 0;
 
   // delay(2000);
@@ -301,43 +309,43 @@ void loop() {
   //   byte error = Wire2.endTransmission();
 
   //   if (error == 0) {
-  //     Serial.print("I2C device found at address 0x");
+  //     Serial2.print("I2C device found at address 0x");
   //     if (address < 16)
-  //       Serial.print("0");
-  //     Serial.print(address, HEX);
-  //     Serial.println();
+  //       Serial2.print("0");
+  //     Serial2.print(address, HEX);
+  //     Serial2.println();
   //     nDevices++;
   //   }
   // }
 
   // if (nDevices == 0) {
-  //   Serial.println("No I2C devices found on main bus");
+  //   Serial2.println("No I2C devices found on main bus");
   // }
 
   // // Now scan each multiplexer port
   // for (int port = 0; port < 8; port++) {
-  //   Serial.print("\nScanning multiplexer port ");
-  //   Serial.print(port);
-  //   Serial.println("...");
+  //   Serial2.print("\nScanning multiplexer port ");
+  //   Serial2.print(port);
+  //   Serial2.println("...");
 
   //   multiplexer.selectPort(port);
   //   nDevices = 0;
   //   uint8_t *ret = multiplexer.scan(port);
 
-  //   Serial.println(ret[0], HEX);
-  //   // Serial.print("Addresses found: ");
+  //   Serial2.println(ret[0], HEX);
+  //   // Serial2.print("Addresses found: ");
   //   // for (int i = 0; ret[i] != 0; i++) { // Assuming the array is
   //   // null-terminated
   //   // }
-  //   // Serial.println();
+  //   // Serial2.println();
 
   //   if (nDevices == 0) {
-  //     Serial.print("No I2C devices found on multiplexer port ");
-  //     Serial.println(port);
+  //     Serial2.print("No I2C devices found on multiplexer port ");
+  //     Serial2.println(port);
   //   }
   // }
 
-  // Serial.println("=== Scan Complete ===\n");
+  // Serial2.println("=== Scan Complete ===\n");
 
   // delay(5000); // Wait 5 seconds before next scan
   // digitalWrite(LED_BUILTIN, LOW);

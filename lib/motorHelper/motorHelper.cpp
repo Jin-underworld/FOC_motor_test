@@ -11,7 +11,11 @@ ExtendedBLDCMotor GB6025motor = ExtendedBLDCMotor(
     MOTOR_CHARACTERISTICS[MOTOR_GB6025].inductance,
     MOTOR_CHARACTERISTICS[MOTOR_GB6025].torque_constant
 );
-BLDCDriver3PWM GB6025driver = BLDCDriver3PWM(motor_GB6025_PWM_IN1, motor_GB6025_PWM_IN2, motor_GB6025_PWM_IN3, motor_GB6025_EN);
+BLDCDriver3PWM GB6025driver = BLDCDriver3PWM(
+  M0_PWM_IN1, 
+  M0_PWM_IN2, 
+  M0_PWM_IN3, 
+  M0_EN);
 
 ExtendedBLDCMotor GB6010motor = ExtendedBLDCMotor(
     MOTOR_CHARACTERISTICS[MOTOR_GB6010].pole_pairs,
@@ -20,7 +24,11 @@ ExtendedBLDCMotor GB6010motor = ExtendedBLDCMotor(
     MOTOR_CHARACTERISTICS[MOTOR_GB6010].inductance,
     MOTOR_CHARACTERISTICS[MOTOR_GB6010].torque_constant
 );
-BLDCDriver3PWM GB6010driver = BLDCDriver3PWM(motor_GB6010_PWM_IN1, motor_GB6010_PWM_IN2, motor_GB6010_PWM_IN3, motor_GB6010_EN);
+BLDCDriver3PWM GB6010driver = BLDCDriver3PWM(
+  M1_PWM_IN1, 
+  M1_PWM_IN2, 
+  M1_PWM_IN3, 
+  M1_EN);
 
 ExtendedBLDCMotor GB4315motor = ExtendedBLDCMotor(
     MOTOR_CHARACTERISTICS[MOTOR_GB4315].pole_pairs,
@@ -29,18 +37,60 @@ ExtendedBLDCMotor GB4315motor = ExtendedBLDCMotor(
     MOTOR_CHARACTERISTICS[MOTOR_GB4315].inductance,
     MOTOR_CHARACTERISTICS[MOTOR_GB4315].torque_constant
 );
-BLDCDriver3PWM GB4315driver = BLDCDriver3PWM(motor_GB4315_PWM_IN1, motor_GB4315_PWM_IN2, motor_GB4315_PWM_IN3, motor_GB4315_EN);
+BLDCDriver3PWM GB4315driver = BLDCDriver3PWM(
+  M2_PWM_IN1, 
+  M2_PWM_IN2, 
+  M2_PWM_IN3, 
+  M2_EN);
 
+ExtendedBLDCMotor GB3510_3_motor = ExtendedBLDCMotor(
+  MOTOR_CHARACTERISTICS[MOTOR_GB3510].pole_pairs,
+  MOTOR_CHARACTERISTICS[MOTOR_GB3510].resistance,
+  MOTOR_CHARACTERISTICS[MOTOR_GB3510].kv,
+  MOTOR_CHARACTERISTICS[MOTOR_GB3510].inductance,
+  MOTOR_CHARACTERISTICS[MOTOR_GB3510].torque_constant
+);
+BLDCDriver3PWM GB3510_3_driver = BLDCDriver3PWM(
+  M3_PWM_IN1, 
+  M3_PWM_IN2, 
+  M3_PWM_IN3, 
+  M3_EN);
+
+// ExtendedBLDCMotor GB3510_4_motor = ExtendedBLDCMotor(
+//   MOTOR_CHARACTERISTICS[MOTOR_GB3510].pole_pairs,
+//   MOTOR_CHARACTERISTICS[MOTOR_GB3510].resistance,
+//   MOTOR_CHARACTERISTICS[MOTOR_GB3510].kv,
+//   MOTOR_CHARACTERISTICS[MOTOR_GB3510].inductance,
+//   MOTOR_CHARACTERISTICS[MOTOR_GB3510].torque_constant
+// );
+// BLDCDriver3PWM GB3510_4_driver = BLDCDriver3PWM(
+//   M4_PWM_IN1, 
+//   M4_PWM_IN2, 
+//   M4_PWM_IN3, 
+//   M4_EN);
 // Array of motor pointers for easy iteration
-ExtendedBLDCMotor* Joint_motor[NUMBER_OF_JOINTS] = {&GB6025motor, &GB6010motor, &GB4315motor};
+ExtendedBLDCMotor* Joint_motor[ACTIVE_JOINTS] = {
+  &GB6025motor,
+  &GB6010motor,
+  &GB4315motor,
+  &GB3510_3_motor
+ };
 
 // Array of driver pointers
-BLDCDriver3PWM* Joint_driver[NUMBER_OF_JOINTS] = {&GB6025driver, &GB6010driver, &GB4315driver};
+BLDCDriver3PWM* Joint_driver[ACTIVE_JOINTS] = {
+  &GB6025driver,
+  &GB6010driver,
+  &GB4315driver,
+  &GB3510_3_driver
+};
 
-// Target angles initialized from joint configs
-float target_Angle_0 = JOINT_CONFIGS[JOINT_0].home_angle;
-float target_Angle_1 = JOINT_CONFIGS[JOINT_1].home_angle;
-float target_Angle_2 = JOINT_CONFIGS[JOINT_2].home_angle;
+//Target angle constrains
+float target_Angle_0 = constrain(JOINT_CONFIGS[JOINT_0].home_angle,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
+float target_Angle_1 = constrain(JOINT_CONFIGS[JOINT_1].home_angle,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
+float target_Angle_2 = constrain(JOINT_CONFIGS[JOINT_2].home_angle,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
+float target_Angle_3 = constrain(JOINT_CONFIGS[JOINT_3].home_angle,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
+//float target_Angle_4 = constrain(JOINT_CONFIGS[JOINT_4].home_angle,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
+
 
 // Motor configurations (keeping for backward compatibility)
 MotorConfig gb6025_config = {
@@ -70,77 +120,108 @@ MotorConfig gb4315_config = {
   "GB4315"
 };
 
-// Initialize motor drivers using lookup tables
+MotorConfig gb3510_3_config = {
+  &GB4315motor, 
+  &sensor3, 
+  JOINT_CONFIGS[JOINT_3].upper_limit,
+  JOINT_CONFIGS[JOINT_3].lower_limit,
+  JOINT_CONFIGS[JOINT_3].home_angle,
+  "GB3510_3"
+};
+
+// MotorConfig gb3510_4_config = {
+//   &GB4315motor, 
+//   &sensor4, 
+//   JOINT_CONFIGS[JOINT_4].upper_limit,
+//   JOINT_CONFIGS[JOINT_4].lower_limit,
+//   JOINT_CONFIGS[JOINT_4].home_angle,
+//   "GB3510_4"
+// };
+
+
+// Initialize motor drivers using lookup tables ORD1
 void initializeMotorDrivers() {
-  for (int i = 0; i < NUMBER_OF_JOINTS; i++) {
+  
+  for (int i = 0; i < ACTIVE_JOINTS; i++) {
     Joint_driver[i]->voltage_power_supply = driver_voltage_supply;
     Joint_driver[i]->init();
     Joint_driver[i]->pwm_frequency = 30000;
     
-    Serial.print("Driver ");
-    Serial.print(i);
-    Serial.print(" (");
-    Serial.print(getMotorCharacteristics((JointNumber)i).name);
-    Serial.println(") initialized");
+    Serial2.print("Driver ");
+    Serial2.print(i);
+    Serial2.print(" (");
+    Serial2.print(getMotorCharacteristics((JointNumber)i).name);
+    Serial2.println(") initialized");
   }
-  Serial.println("All motor drivers initialized");
+  Serial2.println("All motor drivers initialized");
 }
 
+//ORD2
 void initializeMotorControllers() {
-  for (int i = 0; i < NUMBER_OF_JOINTS; i++) {
+  for (int i = 0; i < ACTIVE_JOINTS; i++) {
     Joint_motor[i]->linkDriver(Joint_driver[i]);
     
     // Set control mode - torque control for impedance
-    Joint_motor[i]->controller = MotionControlType::torque;
+    Joint_motor[i]->controller = MotionControlType::angle;
     
     Joint_motor[i]->foc_modulation = FOCModulationType::SpaceVectorPWM;
     
-    Serial.print("Motor ");
-    Serial.print(i);
-    Serial.print(" (");
-    Serial.print(getMotorCharacteristics(i).name);
-    Serial.println(") controller initialized");
+    Serial2.print("Motor ");
+    Serial2.print(i);
+    Serial2.print(" (");
+    Serial2.print(getMotorCharacteristics(i).name);
+    Serial2.println(") controller initialized");
   }
-  Serial.println("All motor controllers initialized");
+  Serial2.println("All motor controllers initialized");
 }
-// Initialize motors with FOC using lookup tables
+
+bool Motor_Calib[ACTIVE_JOINTS] = {0,0,0,0};
+
+// Initialize motors with FOC using lookup tables ORD4
 void initializeMotors() {
-  for (int i = 0; i < NUMBER_OF_JOINTS; i++) {
+  for (int i = 0; i < ACTIVE_JOINTS; i++) {
     const JointConfiguration& joint_cfg = JOINT_CONFIGS[i];
     const MotorCharacteristics& motor_char = getMotorCharacteristics((JointNumber)i);
     
+    
+    if(!Motor_Calib[i]){  
+      Joint_motor[i]->zero_electric_angle = joint_cfg.zero_electric_angle;
+      Joint_motor[i]->sensor_direction = joint_cfg.sensor_direction;
+      Joint_motor[i]->sensor_offset = joint_cfg.zero_calibrated_angle;
+    }
+
     Joint_motor[i]->init();
-    Joint_motor[i]->zero_electric_angle = joint_cfg.zero_electric_angle;
-    Joint_motor[i]->sensor_direction = joint_cfg.sensor_direction;
-    Joint_motor[i]->sensor_offset = joint_cfg.zero_calibrated_angle;
     
     // Set voltage limits based on motor type
     if (joint_cfg.motor_type == MOTOR_GB6025) {
-      Joint_motor[i]->voltage_limit = 12.0f;
-      Joint_motor[i]->voltage_sensor_align = 5.0f;
+      Joint_motor[i]->voltage_limit = 5.0f;
+      Joint_motor[i]->voltage_sensor_align = 3.0f;
     } else if (joint_cfg.motor_type == MOTOR_GB6010) {
-      Joint_motor[i]->voltage_limit = 14.0f;
-      Joint_motor[i]->current_limit = 0.7f;
+      Joint_motor[i]->voltage_limit = 13.0f; //technically limit is 8V without fan, limited by driver
       Joint_motor[i]->voltage_sensor_align = 4.0f;
     } else if (joint_cfg.motor_type == MOTOR_GB4315) {
-      Joint_motor[i]->voltage_limit = 7.0f;
+      Joint_motor[i]->voltage_limit = 7.0f; //limited by motor current
       Joint_motor[i]->voltage_sensor_align = 3.0f;
-    }
+    } else if (joint_cfg.motor_type == MOTOR_GB3510) {
+      Joint_motor[i]->voltage_limit = 5.0f;
+      Joint_motor[i]->voltage_sensor_align = 3.0f;
+    } 
+    
     
     Joint_motor[i]->initFOC();
     
-    Serial.print("Motor ");
-    Serial.print(i);
-    Serial.print(" (");
-    Serial.print(motor_char.name);
-    Serial.print(" @ ");
-    Serial.print(joint_cfg.joint_name);
-    Serial.println(") initialized");
+    Serial2.print("Motor ");
+    Serial2.print(i);
+    Serial2.print(" (");
+    Serial2.print(motor_char.name);
+    Serial2.print(" @ ");
+    Serial2.print(joint_cfg.joint_name);
+    Serial2.println(") initialized");
   }
-  Serial.println("All motors initialized with FOC");
+  Serial2.println("All motors initialized with FOC");
 }
 
-// Set motor control parameters
+// Set motor control parameters ORD3
 void initializeMotorParameters() {
 
   // GB6025 motor parameters
@@ -162,9 +243,9 @@ void initializeMotorParameters() {
   GB6010motor.PID_velocity.I = 3.2f;
   GB6010motor.PID_velocity.D = 0.0f;
   GB6010motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
-  GB6010motor.P_angle.P = 6.0f;
+  GB6010motor.P_angle.P = 4.0f;
   GB6010motor.P_angle.I = 0.01f;
-  GB6010motor.P_angle.D = 5.8f;
+  GB6010motor.P_angle.D = 5.2f;
   GB6010motor.P_angle.output_ramp = 0.2f;
   GB6010motor.LPF_angle.Tf = 0.12f;
   GB6010motor.velocity_limit = 20.0f;
@@ -181,16 +262,45 @@ void initializeMotorParameters() {
   GB4315motor.P_angle.output_ramp = 0.2f;
   GB4315motor.LPF_angle.Tf = 0.12f;
   GB4315motor.velocity_limit = 20.0f;
+
+  //GB3510_3 motor parameters
+  //velocity PI controller parameters
+  GB3510_3_motor.PID_velocity.P = 0.5f;
+  GB3510_3_motor.PID_velocity.I = 3.2f;
+  GB3510_3_motor.PID_velocity.D = 0.0f;
+  GB3510_3_motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
+  GB3510_3_motor.P_angle.P = 2.0f;
+  GB3510_3_motor.P_angle.I = 0.0f;
+  GB3510_3_motor.P_angle.D = 4.2f;
+  GB3510_3_motor.P_angle.output_ramp = 0.2f;
+  GB3510_3_motor.LPF_angle.Tf = 0.12f;
+  GB3510_3_motor.velocity_limit = 20.0f;
+
+  // //GB3510_4 motor parameters
+  // //velocity PI controller parameters
+  // GB3510_4_motor.PID_velocity.P = 0.5f;
+  // GB3510_4_motor.PID_velocity.I = 3.2f;
+  // GB3510_4_motor.PID_velocity.D = 0.0f;
+  // GB3510_4_motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
+  // GB3510_4_motor.P_angle.P = 2.0f;
+  // GB3510_4_motor.P_angle.I = 0.0f;
+  // GB3510_4_motor.P_angle.D = 4.2f;
+  // GB3510_4_motor.P_angle.output_ramp = 0.2f;
+  // GB3510_4_motor.LPF_angle.Tf = 0.12f;
+  // GB3510_4_motor.velocity_limit = 20.0f;
   
-  Serial.println("Motor parameters set");
+  
+  Serial2.println("Motor parameters set");
 }
 
-// Link motors to sensors
+// Link motors to sensors ORD0
 void linkMotorsToSensors() {
   GB6025motor.linkSensor(&sensor0);
   GB6010motor.linkSensor(&sensor1);
   GB4315motor.linkSensor(&sensor2);
-  Serial.println("Motors linked to sensors");
+  GB3510_3_motor.linkSensor(&sensor3);
+  //GB3510_4_motor.linkSensor(&sensor4);
+  Serial2.println("Motors linked to sensors");
 }
 
 
@@ -198,16 +308,16 @@ void linkMotorsToSensors() {
 bool checkstarting(const MotorConfig& config) {
   config.sensor->update();
   float CurrentAngle = config.motor->shaftAngle();
-  Serial.print("Current Angle CHECKER: ");
-  Serial.println(CurrentAngle);
+  Serial2.print("Current Angle CHECKER: ");
+  Serial2.println(CurrentAngle);
   if (CurrentAngle >= config.upper_limit || CurrentAngle < config.lower_limit) {
-    Serial.print("Error: ");
-    Serial.print(config.name);
-    Serial.println(" not in starting position. Please move the motor to the home position.");
+    Serial2.print("Error: ");
+    Serial2.print(config.name);
+    Serial2.println(" not in starting position. Please move the motor to the home position.");
     return 1;
   }
   else {
-    Serial.println("Motor in starting position. Proceeding with homing sequence.");
+    Serial2.println("Motor in starting position. Proceeding with homing sequence.");
     return 0;
   }
 }
@@ -217,8 +327,8 @@ bool goToHomePosition(const MotorConfig& config, unsigned long timeout_ms) {
     unsigned long start_time = millis();
     config.motor->target = config.home_angle;
     
-    Serial.println("homing");
-    Serial.println(config.name);
+    Serial2.println("homing");
+    Serial2.println(config.name);
     while (fabs(config.motor->shaftAngle( ) - config.home_angle) > 0.01f){
         config.sensor->update();
         config.motor->loopFOC();
@@ -226,14 +336,14 @@ bool goToHomePosition(const MotorConfig& config, unsigned long timeout_ms) {
         
         // Add timeout
         if (millis() - start_time > timeout_ms) {
-            Serial.println("Homing sequence timed out!");
+            Serial2.println("Homing sequence timed out!");
             return false;
         }
         
         // Optional: Add progress feedback
         if (millis() % 500 == 0) {
-            Serial.print("Homing... Current angle: ");
-            Serial.println(config.motor->shaftAngle());
+            Serial2.print("Homing... Current angle: ");
+            Serial2.println(config.motor->shaftAngle());
         }
     }
     return true;
@@ -245,22 +355,46 @@ void doTarget(char* cmd) {
   command.scalar(&target_Angle_1, cmd); 
 }
 
-void printRawSensorAngles() {
-  Serial.print("Sensor angles: ");
-  Serial.print(getMotorRawAngle(&GB6025motor), 4); Serial.print(", ");
-  Serial.print(getMotorRawAngle(&GB6010motor), 4); Serial.print(", ");
-  Serial.println(getMotorRawAngle(&GB4315motor), 4);
+void printRawMotorAngles() {
+    updateAllEncoders();
+    
+    Serial2.print("[");
+    for (int i =0;i<ACTIVE_JOINTS;i++){
+    Serial2.print(getMotorRawAngle(Joint_motor[i]), 3);
+    Serial2.print(",");
+    }
+    Serial2.println("]");
 }
+
+
 
 LowPassFilter LPF_angle0(0.25);
 
+// // Get motor angle (-π to π) with direction and offset but without revolution counting
+// float getMotorRawAngle(ExtendedBLDCMotor* motor) {
+//   if(!motor->sensor) return 0;
+  
+//   // Get raw angle and apply direction and offset
+//   float raw_angle = motor->sensor_direction * motor->sensor->getMechanicalAngle() - motor->sensor_offset;
+  
+//   // Normalize to -π to π range
+//   raw_angle = fmod(raw_angle, _2PI);
+//   if (raw_angle > _PI) {
+//     raw_angle -= _2PI;
+//   } else if (raw_angle < -_PI) {
+//     raw_angle += _2PI;
+//   }
+  
+//   return raw_angle;
+// }
+
 // Get motor angle (0-2π) with direction and offset but without revolution counting
 float getMotorRawAngle(ExtendedBLDCMotor* motor) {
-  if(!motor->sensor) return 0;
-  
-  // Get raw angle (0-2π) and apply direction and offset
-  float raw_angle = motor->sensor_direction *  motor->sensor->getMechanicalAngle() - motor->sensor_offset;
-  
-  // Normalize to 0-2π range
-  return _normalizeAngle(raw_angle);
+if(!motor->sensor) return 0;
+
+// Get raw angle (0-2π) and apply direction and offset
+float raw_angle = motor->sensor_direction * motor->sensor->getMechanicalAngle() - motor->sensor_offset;
+
+// Normalize to 0-2π range
+return _normalizeAngle(raw_angle);
 }

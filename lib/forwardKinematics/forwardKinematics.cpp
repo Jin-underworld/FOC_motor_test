@@ -13,30 +13,27 @@ float getSensorAngleKinematics(int joint) {
         case 0: 
             sensor0.update();
             angle_rad = getMotorRawAngle(&GB6025motor);
-            // Serial.print("angle0: "); Serial.print(angle_rad, 3);
             break;
         case 1: 
             sensor1.update();
             angle_rad = getMotorRawAngle(&GB6010motor);
-            //Serial.print(" angle1: "); Serial.print(angle_rad, 3);
             break;
         case 2: 
             sensor2.update();
             angle_rad = getMotorRawAngle(&GB4315motor);
-            //Serial.print(" angle2: "); Serial.println(angle_rad, 3);
             break;
         default: 
             angle_rad = 0.0f;
-            // Serial.println("Invalid joint number!");
+            // Serial2.println("Invalid joint number!");
     }
     
     // Convert to degrees and add the configured offset
     //float result = RAD2DEG(angle_rad) + THETA_OFFSET[joint];
 
-    // Serial.print("Joint ");
-    // Serial.print(joint);
-    // Serial.print(" final angle (deg): ");
-    // Serial.println(result, 2);
+    // Serial2.print("Joint ");
+    // Serial2.print(joint);
+    // Serial2.print(" final angle (deg): ");
+    // Serial2.println(result, 2);
     return angle_rad;
 }
 //shoiuldnt be wrong v1
@@ -65,9 +62,9 @@ Pose6D forwardKinematics(void) {
     float T01[4][4], T12[4][4], T23[4][4];
     
     float temptheta[3];
-    // Serial.println("--- Reading Joint Angles ---");
+    // Serial2.println("--- Reading Joint Angles ---");
     for (int i = 0; i < 3; ++i) {
-        temptheta[i] = getSensorAngleKinematics(i);
+        temptheta[i] = getAllJointAngles(i);
     }
 
     // Compute each DH transform using parameters from kinematicsConfig.h, the offset is added
@@ -116,36 +113,36 @@ void printPose(void) {
 void printPose(const Pose6D &pose) {
     
     // Position
-    Serial.print("["); Serial.print(pose.x, 2);  Serial.print(", ");
-    Serial.print(pose.y, 2); Serial.print(", ");
-    Serial.print(pose.z, 2); Serial.print(", ");
-    Serial.print(0);  Serial.print(", "); 
-    Serial.print(0); Serial.print(", ");
-    Serial.print(0); Serial.print(", ");
-    Serial.print(0); Serial.println("]");
-    // Serial.print("X: "); Serial.print(pose.x, 2);
-    // Serial.print("  Y: "); Serial.print(pose.y, 2);
-    // Serial.print("  Z: "); Serial.println(pose.z, 2);
+    Serial2.print("["); Serial2.print(pose.x, 2);  Serial2.print(", ");
+    Serial2.print(pose.y, 2); Serial2.print(", ");
+    Serial2.print(pose.z, 2); Serial2.print(", ");
+    Serial2.print(0);  Serial2.print(", "); 
+    Serial2.print(0); Serial2.print(", ");
+    Serial2.print(0); Serial2.print(", ");
+    Serial2.print(0); Serial2.println("]");
+    // Serial2.print("X: "); Serial2.print(pose.x, 2);
+    // Serial2.print("  Y: "); Serial2.print(pose.y, 2);
+    // Serial2.print("  Z: "); Serial2.println(pose.z, 2);
     
     // // Orientation
-    // Serial.print("Orientation: Roll: ");
-    // Serial.print(RAD2DEG(pose.roll), 2);
-    // Serial.print("°, Pitch: ");
-    // Serial.print(RAD2DEG(pose.pitch), 2);
-    // Serial.print("°, Yaw: ");
-    // Serial.print(RAD2DEG(pose.yaw), 2);
-    // Serial.println("°");
+    // Serial2.print("Orientation: Roll: ");
+    // Serial2.print(RAD2DEG(pose.roll), 2);
+    // Serial2.print("°, Pitch: ");
+    // Serial2.print(RAD2DEG(pose.pitch), 2);
+    // Serial2.print("°, Yaw: ");
+    // Serial2.print(RAD2DEG(pose.yaw), 2);
+    // Serial2.println("°");
 }
 
 void printMatrix(const float mat[4][4], const char* name) {
-    Serial.print(name);
-    Serial.println(":");
+    Serial2.print(name);
+    Serial2.println(":");
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            Serial.print(mat[i][j], 4);
-            Serial.print("\t");
+            Serial2.print(mat[i][j], 4);
+            Serial2.print("\t");
         }
-        Serial.println();
+        Serial2.println();
     }
-    Serial.println();
+    Serial2.println();
 }

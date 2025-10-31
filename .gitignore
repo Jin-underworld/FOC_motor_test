@@ -6,5 +6,5 @@
 .vscode/settings.json
 .vscode/extensions.json
 lib.lock
-
-
+.pio/build/project.checksum
+.vscode/extensions.json

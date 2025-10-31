@@ -1,15 +1,16 @@
 #include "motorHelper.h"
 #include "sensorHelper.h"
+#include <SimpleFOC.h>
 
 // Motor and driver definitions
 
 // Motor and driver definitions using the lookup tables
 ExtendedBLDCMotor GB6025motor = ExtendedBLDCMotor(
-    MOTOR_CHARACTERISTICS[MOTOR_GB6025].pole_pairs,
-    MOTOR_CHARACTERISTICS[MOTOR_GB6025].resistance,
-    MOTOR_CHARACTERISTICS[MOTOR_GB6025].kv,
-    MOTOR_CHARACTERISTICS[MOTOR_GB6025].inductance,
-    MOTOR_CHARACTERISTICS[MOTOR_GB6025].torque_constant
+  MOTOR_CHARACTERISTICS[MOTOR_GB6025].pole_pairs,
+  MOTOR_CHARACTERISTICS[MOTOR_GB6025].resistance,
+  MOTOR_CHARACTERISTICS[MOTOR_GB6025].kv,
+  MOTOR_CHARACTERISTICS[MOTOR_GB6025].inductance,
+  MOTOR_CHARACTERISTICS[MOTOR_GB6025].torque_constant
 );
 BLDCDriver3PWM GB6025driver = BLDCDriver3PWM(
   M0_PWM_IN1, 
@@ -18,11 +19,11 @@ BLDCDriver3PWM GB6025driver = BLDCDriver3PWM(
   M0_EN);
 
 ExtendedBLDCMotor GB6010motor = ExtendedBLDCMotor(
-    MOTOR_CHARACTERISTICS[MOTOR_GB6010].pole_pairs,
-    MOTOR_CHARACTERISTICS[MOTOR_GB6010].resistance,
-    MOTOR_CHARACTERISTICS[MOTOR_GB6010].kv,
-    MOTOR_CHARACTERISTICS[MOTOR_GB6010].inductance,
-    MOTOR_CHARACTERISTICS[MOTOR_GB6010].torque_constant
+  MOTOR_CHARACTERISTICS[MOTOR_GB6010].pole_pairs,
+  MOTOR_CHARACTERISTICS[MOTOR_GB6010].resistance,
+  MOTOR_CHARACTERISTICS[MOTOR_GB6010].kv,
+  MOTOR_CHARACTERISTICS[MOTOR_GB6010].inductance,
+  MOTOR_CHARACTERISTICS[MOTOR_GB6010].torque_constant
 );
 BLDCDriver3PWM GB6010driver = BLDCDriver3PWM(
   M1_PWM_IN1, 
@@ -31,11 +32,11 @@ BLDCDriver3PWM GB6010driver = BLDCDriver3PWM(
   M1_EN);
 
 ExtendedBLDCMotor GB4315motor = ExtendedBLDCMotor(
-    MOTOR_CHARACTERISTICS[MOTOR_GB4315].pole_pairs,
-    MOTOR_CHARACTERISTICS[MOTOR_GB4315].resistance,
-    MOTOR_CHARACTERISTICS[MOTOR_GB4315].kv,
-    MOTOR_CHARACTERISTICS[MOTOR_GB4315].inductance,
-    MOTOR_CHARACTERISTICS[MOTOR_GB4315].torque_constant
+  MOTOR_CHARACTERISTICS[MOTOR_GB4315].pole_pairs,
+  MOTOR_CHARACTERISTICS[MOTOR_GB4315].resistance,
+  MOTOR_CHARACTERISTICS[MOTOR_GB4315].kv,
+  MOTOR_CHARACTERISTICS[MOTOR_GB4315].inductance,
+  MOTOR_CHARACTERISTICS[MOTOR_GB4315].torque_constant
 );
 BLDCDriver3PWM GB4315driver = BLDCDriver3PWM(
   M2_PWM_IN1, 
@@ -121,7 +122,7 @@ MotorConfig gb4315_config = {
 };
 
 MotorConfig gb3510_3_config = {
-  &GB4315motor, 
+  &GB3510_3_motor, 
   &sensor3, 
   JOINT_CONFIGS[JOINT_3].upper_limit,
   JOINT_CONFIGS[JOINT_3].lower_limit,
@@ -178,7 +179,7 @@ void initializeMotorControllers() {
 // TUNER VERY IMPORTANT //
 // TUNER VERY IMPORTANT //
 // TUNER VERY IMPORTANT //
-bool Motor_Calib[ACTIVE_JOINTS] = {0,0,0,0};
+bool Motor_Calib[ACTIVE_JOINTS] = {0,0,0};
 // TUNER VERY IMPORTANT //
 // TUNER VERY IMPORTANT //
 // TUNER VERY IMPORTANT //
@@ -189,7 +190,7 @@ void initializeMotors() {
     const JointConfiguration& joint_cfg = JOINT_CONFIGS[i];
     const MotorCharacteristics& motor_char = getMotorCharacteristics((JointNumber)i);
     
-    Joint_motor[i]->enableMechanicalMode();
+    //Joint_motor[i]->enableMechanicalMode();
     
     if(!Motor_Calib[i]){  
       Joint_motor[i]->zero_electric_angle = joint_cfg.zero_electric_angle;
@@ -233,36 +234,36 @@ void initializeMotorParameters() {
 
   // GB6025 motor parameters
   //velocity PI controller parameters
-  GB6025motor.PID_velocity.P = 0.2f;
-  GB6025motor.PID_velocity.I = 0.8f;
-  GB6025motor.PID_velocity.D = 0.0f;
-  GB6025motor.LPF_velocity.Tf = 0.15; // filter for velocity, needs to be around 0.05s
-  GB6025motor.P_angle.P = 1.5f;
-  GB6025motor.P_angle.I = 0.0f;
-  GB6025motor.P_angle.D = 0.8f;
-  GB6025motor.P_angle.output_ramp = 0.1f;
-  GB6025motor.LPF_angle.Tf = 0.2f;
-  GB6025motor.velocity_limit = 15.0f;
+  GB6025motor.PID_velocity.P = 0.59f;
+  GB6025motor.PID_velocity.I = 8.9f;
+  GB6025motor.PID_velocity.D = 0.001f;
+  GB6025motor.LPF_velocity.Tf = 0.035; // filter for velocity
+  GB6025motor.P_angle.P = 0.9f;
+  GB6025motor.P_angle.I = 0.05f;
+  GB6025motor.P_angle.D = 0.001f;
+  GB6025motor.P_angle.output_ramp = 5000;
+  GB6025motor.LPF_angle.Tf = 0.0f;
+  GB6025motor.velocity_limit = 4.0f;
 
   // GB6010 motor parameters
   //velocity PI controller parameters
-  GB6010motor.PID_velocity.P = 0.5f;
-  GB6010motor.PID_velocity.I = 3.2f;
-  GB6010motor.PID_velocity.D = 0.0f;
-  GB6010motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
-  GB6010motor.P_angle.P = 4.0f;
-  GB6010motor.P_angle.I = 0.01f;
-  GB6010motor.P_angle.D = 5.2f;
-  GB6010motor.P_angle.output_ramp = 0.2f;
-  GB6010motor.LPF_angle.Tf = 0.12f;
-  GB6010motor.velocity_limit = 20.0f;
+  GB6010motor.PID_velocity.P = 0.82f;
+  GB6010motor.PID_velocity.I = 8.9f;
+  GB6010motor.PID_velocity.D = 0.001f;
+  GB6010motor.LPF_velocity.Tf = 0.035; // filter for velocity
+  GB6010motor.P_angle.P = 1.2f;
+  GB6010motor.P_angle.I = 0.05f;
+  GB6010motor.P_angle.D = 0.001f;
+  GB6010motor.P_angle.output_ramp = 5000;
+  GB6010motor.LPF_angle.Tf = 0.0f;
+  GB6010motor.velocity_limit = 4.0f;
   
   // GB4315 motor parameters
   //velocity PI controller parameters
   GB4315motor.PID_velocity.P = 0.5f;
   GB4315motor.PID_velocity.I = 3.2f;
   GB4315motor.PID_velocity.D = 0.0f;
-  GB4315motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
+  GB4315motor.LPF_velocity.Tf = 0.07; // filter for velocity
   GB4315motor.P_angle.P = 2.0f;
   GB4315motor.P_angle.I = 0.0f;
   GB4315motor.P_angle.D = 4.2f;
@@ -272,16 +273,16 @@ void initializeMotorParameters() {
 
   //GB3510_3 motor parameters
   //velocity PI controller parameters
-  GB3510_3_motor.PID_velocity.P = 0.1f;
-  GB3510_3_motor.PID_velocity.I = 0.3f;
-  GB3510_3_motor.PID_velocity.D = 0.0f;
-  GB3510_3_motor.LPF_velocity.Tf = 0.25f; // filter for velocity, needs to be around 0.05s
-  GB3510_3_motor.P_angle.P = 0.8f;
-  GB3510_3_motor.P_angle.I = 0.0f;
-  GB3510_3_motor.P_angle.D = 0.3f;
-  GB3510_3_motor.P_angle.output_ramp = 0.03f;
-  GB3510_3_motor.LPF_angle.Tf = 0.3f;
-  GB3510_3_motor.velocity_limit = 8.0f;
+  GB3510_3_motor.PID_velocity.P = 0.36f;
+  GB3510_3_motor.PID_velocity.I = 8.9f;
+  GB3510_3_motor.PID_velocity.D = 0.001f;
+  GB3510_3_motor.LPF_velocity.Tf = 0.035f; // filter for velocity, needs to be around 0.05s
+  GB3510_3_motor.P_angle.P = 1.2f;
+  GB3510_3_motor.P_angle.I = 0.03f;
+  GB3510_3_motor.P_angle.D = 0.001f;
+  GB3510_3_motor.P_angle.output_ramp = 5000;
+  GB3510_3_motor.LPF_angle.Tf = 0.0f;
+  GB3510_3_motor.velocity_limit = 7.0f;
 
   // //GB3510_4 motor parameters
   // //velocity PI controller parameters
@@ -357,10 +358,10 @@ bool goToHomePosition(const MotorConfig& config, unsigned long timeout_ms) {
 }
 
 // Command function for target angle
-void doTarget(char* cmd) { 
-  extern Commander command;
-  command.scalar(&target_Angle_1, cmd); 
-}
+// void doTarget(char* cmd) { 
+//   extern Commander command;
+//   command.scalar(&target_Angle_1, cmd); 
+// }
 
 void printRawMotorAngles() {
     updateAllEncoders();
@@ -375,7 +376,7 @@ void printRawMotorAngles() {
 
 
 
-LowPassFilter LPF_angle0(0.25);
+//LowPassFilter LPF_angle0(0.04);
 
 // // Get motor angle (-π to π) with direction and offset but without revolution counting
 // float getMotorRawAngle(ExtendedBLDCMotor* motor) {
@@ -400,7 +401,8 @@ float getMotorRawAngle(ExtendedBLDCMotor* motor) {
 if(!motor->sensor) return 0;
 
 // Get raw angle (0-2π) and apply direction and offset
-float raw_angle = motor->sensor_direction * motor->sensor->getMechanicalAngle() - motor->sensor_offset;
+float raw_angle = motor->sensor_direction * motor->mech_angle_lpf(motor->sensor->getMechanicalAngle()) - motor->sensor_offset;
+//LPF updated here on permotor basis. MUST BE KEPT otherwise motors propagate
 
 // Normalize to 0-2π range
 return _normalizeAngle(raw_angle);
@@ -424,22 +426,11 @@ void ExtendedBLDCMotor::move(float new_target) {
         // Get current mechanical angle (0-2π range)
         float current_mechanical_angle = getMechanicalShaftAngle();
         
-        // Calculate mechanical velocity
-        unsigned long now_us = _micros();
-        float Ts = (now_us - prev_timestamp_mech) * 1e-6f;
-        if (Ts <= 0 || Ts > 0.5f) Ts = 1e-3f; // Sanity check
-        
-        if (prev_timestamp_mech != 0) {
-            float angle_diff = calculateShortestAngleDifference(current_mechanical_angle, prev_mechanical_angle);
-            shaft_velocity = angle_diff / Ts;
-        }
-        
-        // Store for next iteration
-        prev_mechanical_angle = current_mechanical_angle;
-        prev_timestamp_mech = now_us;
+      
         
         // Update shaft_angle to current mechanical angle (no revolution tracking)
         shaft_angle = current_mechanical_angle;
+        shaft_velocity = shaftVelocity();
 
         // If disabled do nothing
         if (!enabled) return;
@@ -455,6 +446,10 @@ void ExtendedBLDCMotor::move(float new_target) {
             // Calculate shortest angular difference for position control
             float angle_error = calculateShortestAngleDifference(target, current_mechanical_angle);
             
+            // optional micro-deadband to kill dithering at setpoint
+            const float deadband = 0.08f; // 
+            if (fabsf(angle_error) < deadband) angle_error = 0.0f;
+
             // Angle set point (use current + error to avoid wrapping issues)
             shaft_angle_sp = current_mechanical_angle + angle_error;
             

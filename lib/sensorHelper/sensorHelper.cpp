@@ -47,9 +47,9 @@ void initializeSensors() {
     sensor2.init(&Wire2);
     //sensorBarrier.init(&Wire2);
     sensor3.init(&Wire2);
-    sensor4.init(&Wire2);
-    sensor5.init(&Wire2);
-    sensor6.init(&Wire2);
+    //sensor4.init(&Wire2);
+    //sensor5.init(&Wire2);
+    //sensor6.init(&Wire2);
 
     Serial.println("All sensors initialized");
 }
@@ -126,24 +126,24 @@ float getAllJointAngles(int sensornumber){
             sensor3.update();
             angle_rad = sensor3.getMechanicalAngle() - JOINT_CONFIGS[3].zero_calibrated_angle;
             break;
-        case 4:
-            sensor4.update();
-            angle_rad = sensor4.getMechanicalAngle() - JOINT_CONFIGS[4].zero_calibrated_angle;
-            break;
-        case 5:
-            sensor5.update();
-            angle_rad = sensor5.getMechanicalAngle() - JOINT_CONFIGS[5].zero_calibrated_angle;
-            break;
-        case 6:
-            sensor6.update();
-            angle_rad = sensor6.getMechanicalAngle() - JOINT_CONFIGS[6].zero_calibrated_angle;
-            break;
+        // case 4:
+        //     sensor4.update();
+        //     angle_rad = sensor4.getMechanicalAngle() - JOINT_CONFIGS[4].zero_calibrated_angle;
+        //     break;
+        // case 5:
+        //     sensor5.update();
+        //     angle_rad = sensor5.getMechanicalAngle() - JOINT_CONFIGS[5].zero_calibrated_angle;
+        //     break;
+        // case 6:
+        //     sensor6.update();
+        //     angle_rad = sensor6.getMechanicalAngle() - JOINT_CONFIGS[6].zero_calibrated_angle;
+        //     break;
         default: 
             angle_rad = 0.0f;
             // Serial2.println("Invalid joint number!");
-
-        return angle_rad;
     }
+
+    return angle_rad;
 }
 
 void printAllJointAngles() {

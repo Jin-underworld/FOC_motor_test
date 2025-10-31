@@ -49,7 +49,7 @@
 // Joint 0 Configuration (GB6025 installed as base joint)
 #define JOINT0_ZE_ANGLE 4.29f
 #define JOINT0_SENSOR_DIRECTION Direction::CCW
-#define JOINT0_ZERO_CALIBRATED_ANGLE -0.423f//-5.880f
+#define JOINT0_ZERO_CALIBRATED_ANGLE -5.828f
 #define JOINT0_HOME_ANGLE 0.0f
 #define JOINT0_UPPER_LIMIT 0.785f
 #define JOINT0_LOWER_LIMIT -0.785f
@@ -65,7 +65,7 @@
 // Joint 2 Configuration (GB4315 installed as elbow joint)
 #define JOINT2_ZE_ANGLE 5.68f
 #define JOINT2_SENSOR_DIRECTION Direction::CCW
-#define JOINT2_ZERO_CALIBRATED_ANGLE -2.146f//(-4.331f + 2.134f)
+#define JOINT2_ZERO_CALIBRATED_ANGLE -2.152f
 #define JOINT2_HOME_ANGLE 0.75f * M_PI
 #define JOINT2_UPPER_LIMIT (2.628f - 0.001f)
 #define JOINT2_LOWER_LIMIT (0.005f - 0.001f)
@@ -73,7 +73,7 @@
 // Joint 3 Configuration (GB3510 installed as compensator joint)
 #define JOINT3_ZE_ANGLE 3.45f
 #define JOINT3_SENSOR_DIRECTION Direction::CCW
-#define JOINT3_ZERO_CALIBRATED_ANGLE 0.444f
+#define JOINT3_ZERO_CALIBRATED_ANGLE -5.877f
 #define JOINT3_HOME_ANGLE 0.0f
 #define JOINT3_UPPER_LIMIT -(0.752f - 0.001f)
 #define JOINT3_LOWER_LIMIT -(0.752f - 0.001f)
@@ -177,7 +177,7 @@ enum JointNumber : uint8_t {
     JOINT_1 = 1,  // Shoulder
     JOINT_2 = 2,  // Elbow
     JOINT_3 = 3,  // Wrist roll (future)
-    JOINT_4 = 4,  // Wrist pitch (future)
+    //JOINT_4 = 4,  // Wrist pitch (future)
     // JOINT_5 = 5,  // Wrist yaw (future)
     NUM_JOINTS = NUMBER_OF_JOINTS
 };
@@ -227,17 +227,6 @@ static const JointConfiguration JOINT_CONFIGS[NUMBER_OF_JOINTS] = {
         JOINT3_UPPER_LIMIT,
         JOINT3_LOWER_LIMIT,
         "Compensator"
-    },
-    //JOINT_4 - pitch(GB3510_4)
-    {
-        MOTOR_GB3510,
-        JOINT4_ZE_ANGLE,
-        JOINT4_SENSOR_DIRECTION,
-        JOINT4_ZERO_CALIBRATED_ANGLE,
-        JOINT4_HOME_ANGLE,
-        JOINT4_UPPER_LIMIT,
-        JOINT4_LOWER_LIMIT,
-        "Pitch"
     }
 };
 

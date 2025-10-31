@@ -46,6 +46,9 @@ public:
     void enableMechanicalMode() { use_mechanical_only = true; }
     void enableFullRotationMode() { use_mechanical_only = false; }
 
+    LowPassFilter mech_angle_lpf{0.0f};  // per-motor mechanical angle LPF (Tf=0 disables)
+    void setMechanicalAngleTf(float Tf) { mech_angle_lpf.Tf = Tf; }
+
 private:
     // Store previous mechanical angle for velocity calculation (mechanical mode only)
     float prev_mechanical_angle = 0;
@@ -65,8 +68,8 @@ extern ExtendedBLDCMotor GB4315motor;
 extern BLDCDriver3PWM GB4315driver;
 extern ExtendedBLDCMotor GB3510_3_motor;
 extern BLDCDriver3PWM GB3510_3_driver;
-extern ExtendedBLDCMotor GB3510_4_motor;
-extern BLDCDriver3PWM GB3510_4_driver;
+// extern ExtendedBLDCMotor GB3510_4_motor;
+// extern BLDCDriver3PWM GB3510_4_driver;
 
 
 // Arrays for iteration - CHANGED: Added these
@@ -78,7 +81,7 @@ extern float target_Angle_0;
 extern float target_Angle_1;
 extern float target_Angle_2;
 extern float target_Angle_3;
-extern float target_Angle_4;
+// extern float target_Angle_4;
 
 struct MotorConfig {
     ExtendedBLDCMotor* motor;

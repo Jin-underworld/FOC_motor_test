@@ -53,30 +53,59 @@ void dhTransform(float theta, float alpha, float d, float r, float T[4][4]) {
     float sa = sinf(alpha);
 
     T[0][0] = ct;    T[0][1] = -st * ca;  T[0][2] = st * sa;   T[0][3] = r * ct;
-    T[1][0]  = st;    T[1][1] = ct * ca;   T[1][2] = -ct * sa;  T[1][3] = r * st;
+    T[1][0] = st;    T[1][1] = ct * ca;   T[1][2] = -ct * sa;  T[1][3] = r * st;
     T[2][0] = 0;     T[2][1] = sa;        T[2][2] = ca;        T[2][3] = d;
     T[3][0] = 0;     T[3][1] = 0;         T[3][2] = 0;         T[3][3] = 1;
 }
 
 Pose6D forwardKinematics(void) {
-    float T01[4][4], T12[4][4], T23[4][4];
+    float T01[4][4], T12[4][4], T23[4][4], T34[4][4], T45[4][4], T56[4][4], T67[4][4];
     
-    float temptheta[3];
+    float Motor_Move_Angle[NUMBER_OF_JOINTS]; // The angles moved by motor
     // Serial2.println("--- Reading Joint Angles ---");
-    for (int i = 0; i < 3; ++i) {
-        temptheta[i] = getAllJointAngles(i);
+    for (int i = 0; i < NUMBER_OF_JOINTS; ++i) {
+        Motor_Move_Angle[i] = getAllMechAngles(i);
     }
 
     // Compute each DH transform using parameters from kinematicsConfig.h, the offset is added
-    dhTransform(temptheta[0], ALPHA_DH[0], D_DH[0], R_DH[0], T01);
-    dhTransform(temptheta[1], ALPHA_DH[1], D_DH[1], R_DH[1], T12);
-    dhTransform(temptheta[2], ALPHA_DH[2], D_DH[2], R_DH[2], T23);
-
+    dhTransform(THETA[0]+DH_ZERO_OFFSET[0]+Motor_Move_Angle[0], ALPHA_DH[0], D_DH[0], R_DH[0], T01);//
+    dhTransform(THETA[1]+DH_ZERO_OFFSET[1]+Motor_Move_Angle[1], ALPHA_DH[1], D_DH[1], R_DH[1], T12);//
+    dhTransform(THETA[2]+DH_ZERO_OFFSET[2]+Motor_Move_Angle[2], ALPHA_DH[2], D_DH[2], R_DH[2], T23);//
+    dhTransform(THETA[3]+DH_ZERO_OFFSET[3]+Motor_Move_Angle[3], ALPHA_DH[3], D_DH[3], R_DH[3], T34);//
+    dhTransform(THETA[4]+DH_ZERO_OFFSET[4]+Motor_Move_Angle[4], ALPHA_DH[4], D_DH[4], R_DH[4], T45);//
+    dhTransform(THETA[5]+DH_ZERO_OFFSET[5]+Motor_Move_Angle[5], ALPHA_DH[5], D_DH[5], R_DH[5], T56);//
+    dhTransform(0-Motor_Move_Angle[6],0,0,0,T67); //
+    // Serial2.println("T23");
+    // Serial2.println(T23[2][3]);
     // Combine all transforms: T_GE = TG0 * T01 * T12 * T23 * T3E
-    float T02[4][4], T03[4][4], Ttemp[4][4], TG3[4][4],TGE[4][4];
+    float T02[4][4], T03[4][4],T04[4][4],T05[4][4],T06[4][4],T07[4][4],TGE[4][4];
     matMul4x4(T01, T12, T02);
+    // Serial2.println("T01");
+    // Serial2.println(T01[0][3]);
+    // Serial2.println(T01[1][3]);
+    // Serial2.println(T01[2][3]);
+    // Serial2.println("T02");
+    // Serial2.println(T02[0][3]);
+    // Serial2.println(T02[1][3]);
+    // Serial2.println(T02[2][3]);
     matMul4x4(T02, T23, T03);
-    matMul4x4(TG0, T03, TGE); 
+    // Serial2.println("T03");
+    // Serial2.println(T03[0][3]);
+    // Serial2.println(T03[1][3]);
+    // Serial2.println(T03[2][3]);
+    matMul4x4(T03, T34, T04); 
+    // Serial2.println("T04");
+    // Serial2.println(T04[0][3]);
+    // Serial2.println(T04[1][3]);
+    // Serial2.println(T04[2][3]);
+    matMul4x4(T04, T45, T05);
+    // Serial2.println("T05");
+    // Serial2.println(T05[0][3]);
+    // Serial2.println(T05[1][3]);
+    // Serial2.println(T05[2][3]);
+    matMul4x4(T05, T56, T06); 
+    matMul4x4(T06, T67, T07); 
+    matMul4x4(TG0, T07, TGE);
     //TGE = TG3; //treat End effector as joint 3 for now
     // printMatrix(T01, "T01");
     // printMatrix(T12, "T12");
@@ -113,12 +142,13 @@ void printPose(void) {
 void printPose(const Pose6D &pose) {
     
     // Position
-    Serial2.print("["); Serial2.print(pose.x, 2);  Serial2.print(", ");
+    Serial2.print("["); 
+    Serial2.print(pose.x, 2); Serial2.print(", ");
     Serial2.print(pose.y, 2); Serial2.print(", ");
     Serial2.print(pose.z, 2); Serial2.print(", ");
-    Serial2.print(0);  Serial2.print(", "); 
-    Serial2.print(0); Serial2.print(", ");
-    Serial2.print(0); Serial2.print(", ");
+    Serial2.print(pose.yaw);  Serial2.print(", "); 
+    Serial2.print(pose.pitch);Serial2.print(", ");
+    Serial2.print(pose.roll); Serial2.print(", ");
     Serial2.print(0); Serial2.println("]");
     // Serial2.print("X: "); Serial2.print(pose.x, 2);
     // Serial2.print("  Y: "); Serial2.print(pose.y, 2);

@@ -70,6 +70,7 @@ extern "C" void __attribute__((weak)) HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 // Commander callback: T [idx angle] or T=angle (defaults to joint 1)
 void doTarget(char* cmd) {command.scalar(&target_Angle_1,cmd);}
 
+InlineCurrentSense M1_Current_sense = InlineCurrentSense(0.01,50,M1_CURR_SENS_A,M1_CURR_SENS_B);
 
 void setup() {
   
@@ -92,8 +93,8 @@ void setup() {
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
 
-  Serial2.setTx(PD5);  // USART2_TX on PD5
-  Serial2.setRx(PD6);  // USART2_RX on PD6
+  Serial2.setTx(SERIAL2_TX);  // USART2_TX on PD5
+  Serial2.setRx(SERIAL2_RX);  // USART2_RX on PD6
   Serial2.begin(BAUD_RATE);
   delay(100);
   Serial2.println("Serial2 initialised!");
@@ -144,8 +145,12 @@ void setup() {
   GB6010driver.pwm_frequency = 20000;
   GB6010motor.linkDriver(&GB6010driver);
   GB6010driver.init();
-  GB6010motor.controller = MotionControlType::angle;
+  GB6010motor.controller = MotionControlType::torque;
   GB6010motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+  GB6010motor.torque_controller = TorqueControlType::voltage;
+  M1_Current_sense.linkDriver(&GB6010driver);
+  M1_Current_sense.init();
+  GB6010motor.linkCurrentSense(&M1_Current_sense);
 
   // GB6010 motor parameters
   //velocity PI controller parameters
@@ -153,7 +158,7 @@ void setup() {
   GB6010motor.PID_velocity.I = 8.9f;
   GB6010motor.PID_velocity.D = 0.001f;
   GB6010motor.LPF_velocity.Tf = 0.035; // filter for velocity, needs to be around 0.05s
-  GB6010motor.P_angle.P = 0.2f;
+  GB6010motor.P_angle.P = 0.32f;
   GB6010motor.P_angle.I = 0.05f;
   GB6010motor.P_angle.D = 0.001f;
   GB6010motor.P_angle.output_ramp = 5000;
@@ -163,6 +168,8 @@ void setup() {
   GB6010motor.zero_electric_angle =JOINT1_ZE_ANGLE;
   GB6010motor.sensor_direction=    JOINT1_SENSOR_DIRECTION;
   GB6010motor.sensor_offset=       JOINT1_ZERO_CALIBRATED_ANGLE;
+  GB6010motor.current_limit=2.5f;
+  GB6010motor.voltage_limit = 24.0f;
   GB6010motor.enable();
   GB6010motor.initFOC();
   
@@ -180,7 +187,7 @@ void setup() {
   GB4315motor.PID_velocity.I = 1.2f;
   GB4315motor.PID_velocity.D = 0.001f;
   GB4315motor.LPF_velocity.Tf = 0.12f; // filter for velocity, needs to be around 0.05s
-  GB4315motor.P_angle.P = 0.18f;
+  GB4315motor.P_angle.P = 0.5f;
   GB4315motor.P_angle.I = 0.0f;
   GB4315motor.P_angle.D = 0.001f;
   GB4315motor.P_angle.output_ramp = 2000;
@@ -198,22 +205,22 @@ void setup() {
   GB3510_3_driver.pwm_frequency = 20000;
   GB3510_3_motor.linkDriver(&GB3510_3_driver);
   GB3510_3_driver.init();
-  GB3510_3_motor.controller = MotionControlType::velocity;
+  GB3510_3_motor.controller = MotionControlType::angle;
   GB3510_3_motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
 
   // GB4315 motor parameters
   //velocity PI controller parameters
-  GB3510_3_motor.PID_velocity.P = 0.47f;
-  GB3510_3_motor.PID_velocity.I = 9.2f;
+  GB3510_3_motor.PID_velocity.P = 0.18f;
+  GB3510_3_motor.PID_velocity.I = 5.3f;
   GB3510_3_motor.PID_velocity.D = 0.001f;
   GB3510_3_motor.LPF_velocity.Tf = 0.035f; // filter for velocity
-  GB3510_3_motor.P_angle.P = 0.18f;
-  GB3510_3_motor.P_angle.I = 0.0f;
+  GB3510_3_motor.P_angle.P = 1.7f;
+  GB3510_3_motor.P_angle.I = 0.01f;
   GB3510_3_motor.P_angle.D = 0.001f;
   GB3510_3_motor.P_angle.output_ramp = 2000;
   GB3510_3_motor.LPF_angle.Tf = 0.05f;
   GB3510_3_motor.velocity_limit = 3.0f;
-  GB3510_3_motor.enableFullRotationMode();
+  GB3510_3_motor.enableMechanicalMode();
   GB3510_3_motor.zero_electric_angle =JOINT3_ZE_ANGLE;
   GB3510_3_motor.sensor_direction=    JOINT3_SENSOR_DIRECTION;
   GB3510_3_motor.sensor_offset=       JOINT3_ZERO_CALIBRATED_ANGLE;
@@ -318,8 +325,8 @@ void loop() {
 //   Joint_motor[2]->move(target_Angle_2);//target_Angle_2
  
 
-  Joint_motor[3]->loopFOC();
-  Joint_motor[3]->move(1.0f);
+//   Joint_motor[3]->loopFOC();
+//   Joint_motor[3]->move(target_Angle_3);
 
    digitalWrite(LED_BUILTIN, LOW);
 
@@ -341,6 +348,17 @@ void loop() {
 
 //   }
 
+    // float target_torque = 2.0f;
+
+    // float current_cmd = target_torque/Joint_motor[1]->torque_constant;
+
+    // Joint_motor[1]->loopFOC();
+
+    // Joint_motor[1]->move(current_cmd);
+
+
+
+
 
   // //test branch: impedance control only on 6010motor, used as reference for full implementation
   // float dtheta =GB6010motor.shaft_velocity;
@@ -358,8 +376,9 @@ void loop() {
 
   if(micros() - last_debug > 10000) {  // Print every 10 miilisecond
     //prints pos endeffector in Joint_motor space for Unity controller(rate limited)
-    //printPose();
-    //printRawSensorAngles();
+    printPose();
+    //printAllEncoders();
+    //printAllMechAngles();
     //printRawMotorAngles();
     //Serial2.print("Actual Angle: \n");
     //Serial2.println(GB6025motor.shaftAngle(),3);
@@ -368,8 +387,8 @@ void loop() {
     // Serial2.println(GB6010motor.shaftVelocity(),3);
     // Serial2.println(GB4315motor.shaftAngle(),3);
     // Serial2.println(GB4315motor.shaftVelocity(),3);
-    Serial2.println(GB3510_3_motor.shaftAngle(),3);
-    Serial2.println(GB3510_3_motor.shaftVelocity(),3);
+    //Serial2.println(GB3510_3_motor.shaftAngle(),3);
+    //Serial2.println(GB3510_3_motor.shaftVelocity(),3);
     //additional print
     //Jacobian J = calculateJacobian();
     //printJacobian(J);
@@ -383,6 +402,17 @@ void loop() {
     last_debug = micros();
   }
 
+//   if (millis() - last_debug > 200) {
+//     Serial2.print("Target torque: "); Serial2.print(target_torque,3);
+//     Serial2.print(", Motor Angle: "); Serial2.print(Joint_motor[1]->shaftAngle(),3);
+//     Serial2.print(", Raw Sensor Angle: "); Serial2.print(sensor1.getAngle(),3);
+//     Serial2.print(", Velocity: "); Serial2.print(Joint_motor[1]->shaftVelocity(),3);
+//     Serial2.print(", Motor Voltage Uq: "); Serial2.print(Joint_motor[1]->voltage.q,3);
+//     Serial2.print(", Motor Current Iq: "); Serial2.print(Joint_motor[1]->current.q,3);
+//     //Serial.print(", Current Command: "); Serial.print(current_cmd,3);
+//     Serial2.println();
+//     last_debug = millis();
+//   }
 
   command.run();
 
@@ -391,9 +421,9 @@ void loop() {
     delay(50); // Debounce delay
     
     Serial2.println("Button pressed! Entering error loop.");
-    // Joint_motor[0]->disable();
-    // Joint_motor[1]->disable();
-    // Joint_motor[2]->disable();
+    Joint_motor[0]->disable();
+    Joint_motor[1]->disable();
+    Joint_motor[2]->disable();
     Joint_motor[3]->disable();
 
     while (buttonPressed) {
@@ -415,12 +445,12 @@ void loop() {
     sensor2.update();
     target_Angle_2 = Joint_motor[2]->shaftAngle();//->shaftAngle(); // Set target to current position
 
-    // sensor3.update();
-    // target_Angle_3 = getMotorRawAngle(Joint_motor[3]); // Set target to current position
+    sensor3.update();
+    target_Angle_3 = Joint_motor[3]->shaftAngle(); // Set target to current position
 
-    // Joint_motor[0]->enable();
-    // Joint_motor[1]->enable();
-    // Joint_motor[2]->enable();
+    Joint_motor[0]->enable();
+    Joint_motor[1]->enable();
+    Joint_motor[2]->enable();
     Joint_motor[3]->enable();
 
   }

@@ -22,7 +22,7 @@
 #define MOTOR_GB6010_PP 14
 #define MOTOR_GB6010_R 5.14f
 #define MOTOR_GB6010_KV 16
-#define MOTOR_GB6010_KT 0.61f
+#define MOTOR_GB6010_KT 0.61f 
 #define MOTOR_GB6010_INDUCTANCE 6.175e-3f
 #define MOTOR_GB6010_CURRENT_LIMIT 1.3f  // Maximum continuous current, original is 1.3, only run (1.5) with cooling
 
@@ -79,12 +79,30 @@
 #define JOINT3_LOWER_LIMIT -(0.752f - 0.001f)
 
 // Joint 4 Configuration (GB3510 installed as pitch joint)
-#define JOINT4_ZE_ANGLE 3.45f
+// #define JOINT4_ZE_ANGLE 3.45f
 #define JOINT4_SENSOR_DIRECTION Direction::CCW
-#define JOINT4_ZERO_CALIBRATED_ANGLE 0.444f
-#define JOINT4_HOME_ANGLE 0.0f
-#define JOINT4_UPPER_LIMIT -(0.752f - 0.001f)
-#define JOINT4_LOWER_LIMIT -(0.752f - 0.001f)
+#define JOINT4_ZERO_CALIBRATED_ANGLE -4.732f
+// #define JOINT4_HOME_ANGLE 0.0f
+// #define JOINT4_UPPER_LIMIT -(0.752f - 0.001f)
+// #define JOINT4_LOWER_LIMIT -(0.752f - 0.001f)
+
+// Joint 5 Configuration (no motor)
+// #define JOINT5_ZE_ANGLE 3.45f
+#define JOINT5_SENSOR_DIRECTION Direction::CCW
+#define JOINT5_ZERO_CALIBRATED_ANGLE -4.430f
+// #define JOINT5_HOME_ANGLE 0.0f
+// #define JOINT5_UPPER_LIMIT -(0.752f - 0.001f)
+// #define JOINT5_LOWER_LIMIT -(0.752f - 0.001f)
+
+// Joint 6 Configuration (no motor, last till end effector)
+// #define JOINT6_ZE_ANGLE 3.45f
+#define JOINT6_SENSOR_DIRECTION Direction::CCW
+#define JOINT6_ZERO_CALIBRATED_ANGLE -3.300f
+// #define JOINT6_HOME_ANGLE 0.0f
+// #define JOINT6_UPPER_LIMIT -(0.752f - 0.001f)
+// #define JOINT6_LOWER_LIMIT -(0.752f - 0.001f)
+
+
 
 
 // ============================================================================

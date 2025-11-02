@@ -45,5 +45,8 @@ void printAllEncoders();
 void printAllMechEncoders();
 float getAllJointAngles(int sensornumber);
 void printAllJointAngles();
+float getAllMechAngles(int sensornumber);
+void printAllMechAngles();
+
 
 #endif // SENSOR_HELPER_H

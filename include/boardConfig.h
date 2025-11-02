@@ -49,6 +49,8 @@
     #define M1_PWM_IN2 PA1 //IN2
     #define M1_PWM_IN3 PA0 //IN3
     #define M1_EN PE3
+    #define M1_CURR_SENS_B PC3 //MX_01 is phase B
+    #define M1_CURR_SENS_A PC4 //MX_02 is phase A
 
     #define M2_PWM_IN1 PA7//IN1 TIMER 3 on F4 discovery  (working)
     #define M2_PWM_IN2 PA6//IN2
@@ -81,6 +83,8 @@
     #define BAUD_RATE 115200
     #define BUTTON_PIN GPIO_PIN_0 //PC0
     #define BUTTON_GPIO_PORT GPIOC
+    #define SERIAL2_TX PD5
+    #define SERIAL2_RX PD6
 
 #elif SELECTED_BOARD == BOARD_STM32_NUCLEO
     // STM32 pins

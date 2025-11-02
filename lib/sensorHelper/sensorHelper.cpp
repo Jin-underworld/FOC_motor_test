@@ -47,9 +47,9 @@ void initializeSensors() {
     sensor2.init(&Wire2);
     //sensorBarrier.init(&Wire2);
     sensor3.init(&Wire2);
-    //sensor4.init(&Wire2);
-    //sensor5.init(&Wire2);
-    //sensor6.init(&Wire2);
+    sensor4.init(&Wire2);
+    sensor5.init(&Wire2);
+    sensor6.init(&Wire2);
 
     Serial.println("All sensors initialized");
 }
@@ -157,3 +157,63 @@ void printAllJointAngles() {
     Serial2.println("]");
 }
 
+
+
+LowPassFilter LPFangle0 {0.1};
+
+//for DH table, gets all sensor angles in RAD with zero offset without needing to link to a motor
+float getAllMechAngles(int sensornumber){
+
+    float angle_rad = 0.0f;
+    switch (sensornumber) {
+        case 0: 
+            sensor0.update();
+            // Get raw angle (0-2π) and apply direction and offset
+            angle_rad = JOINT0_SENSOR_DIRECTION * sensor0.getMechanicalAngle() - JOINT0_ZERO_CALIBRATED_ANGLE;
+            break;
+        case 1: 
+            sensor1.update();
+            angle_rad = JOINT1_SENSOR_DIRECTION * sensor1.getMechanicalAngle() - JOINT1_ZERO_CALIBRATED_ANGLE;
+            break;
+        case 2: 
+            sensor2.update();
+            angle_rad = JOINT2_SENSOR_DIRECTION * sensor2.getMechanicalAngle() - JOINT2_ZERO_CALIBRATED_ANGLE;
+            break;
+        case 3:
+            sensor3.update();
+            angle_rad = JOINT3_SENSOR_DIRECTION * sensor3.getMechanicalAngle() - JOINT3_ZERO_CALIBRATED_ANGLE;
+            break;
+        case 4:
+            sensor4.update();
+            angle_rad = JOINT4_SENSOR_DIRECTION * sensor4.getMechanicalAngle() - JOINT4_ZERO_CALIBRATED_ANGLE;
+            break;
+        case 5:
+            sensor5.update();
+            angle_rad = JOINT5_SENSOR_DIRECTION * sensor5.getMechanicalAngle() - JOINT5_ZERO_CALIBRATED_ANGLE;
+            break;
+        case 6:
+            sensor6.update();
+            angle_rad = JOINT0_SENSOR_DIRECTION * sensor6.getMechanicalAngle() - JOINT6_ZERO_CALIBRATED_ANGLE;
+            break;
+        default: 
+            angle_rad = 0.0f;
+            // Serial2.println("Invalid joint number!");
+    }
+
+    return _normalizeAngle(angle_rad);
+}
+
+
+
+
+//print for checking, should be all zero on power on
+void printAllMechAngles() {
+    updateAllEncoders();
+    
+    Serial2.print("[");
+    for (int i =0;i<NUMBER_OF_JOINTS;i++){
+    Serial2.print(getAllMechAngles(i), 3);
+    Serial2.print(",");
+    }
+    Serial2.println("]");
+}

@@ -238,7 +238,7 @@ void initializeMotorParameters() {
   GB6025motor.PID_velocity.I = 8.9f;
   GB6025motor.PID_velocity.D = 0.001f;
   GB6025motor.LPF_velocity.Tf = 0.035; // filter for velocity
-  GB6025motor.P_angle.P = 0.9f;
+  GB6025motor.P_angle.P = 0.2f;
   GB6025motor.P_angle.I = 0.05f;
   GB6025motor.P_angle.D = 0.001f;
   GB6025motor.P_angle.output_ramp = 5000;
@@ -247,11 +247,11 @@ void initializeMotorParameters() {
 
   // GB6010 motor parameters
   //velocity PI controller parameters
-  GB6010motor.PID_velocity.P = 0.82f;
+  GB6010motor.PID_velocity.P = 0.59f;
   GB6010motor.PID_velocity.I = 8.9f;
   GB6010motor.PID_velocity.D = 0.001f;
   GB6010motor.LPF_velocity.Tf = 0.035; // filter for velocity
-  GB6010motor.P_angle.P = 1.2f;
+  GB6010motor.P_angle.P = 0.2f;
   GB6010motor.P_angle.I = 0.05f;
   GB6010motor.P_angle.D = 0.001f;
   GB6010motor.P_angle.output_ramp = 5000;
@@ -260,29 +260,29 @@ void initializeMotorParameters() {
   
   // GB4315 motor parameters
   //velocity PI controller parameters
-  GB4315motor.PID_velocity.P = 0.5f;
-  GB4315motor.PID_velocity.I = 3.2f;
-  GB4315motor.PID_velocity.D = 0.0f;
-  GB4315motor.LPF_velocity.Tf = 0.07; // filter for velocity
-  GB4315motor.P_angle.P = 2.0f;
+  GB4315motor.PID_velocity.P = 0.33f;
+  GB4315motor.PID_velocity.I = 1.2f;
+  GB4315motor.PID_velocity.D = 0.001f;
+  GB4315motor.LPF_velocity.Tf = 0.12f; // filter for velocity
+  GB4315motor.P_angle.P = 0.18f;
   GB4315motor.P_angle.I = 0.0f;
-  GB4315motor.P_angle.D = 4.2f;
-  GB4315motor.P_angle.output_ramp = 0.2f;
-  GB4315motor.LPF_angle.Tf = 0.12f;
-  GB4315motor.velocity_limit = 20.0f;
+  GB4315motor.P_angle.D = 0.001f;
+  GB4315motor.P_angle.output_ramp = 2000;
+  GB4315motor.LPF_angle.Tf = 0.05f;
+  GB4315motor.velocity_limit = 2.0f;
 
   //GB3510_3 motor parameters
   //velocity PI controller parameters
-  GB3510_3_motor.PID_velocity.P = 0.36f;
-  GB3510_3_motor.PID_velocity.I = 8.9f;
+  GB3510_3_motor.PID_velocity.P = 0.39f;
+  GB3510_3_motor.PID_velocity.I = 7.1f;
   GB3510_3_motor.PID_velocity.D = 0.001f;
-  GB3510_3_motor.LPF_velocity.Tf = 0.035f; // filter for velocity, needs to be around 0.05s
-  GB3510_3_motor.P_angle.P = 1.2f;
-  GB3510_3_motor.P_angle.I = 0.03f;
+  GB3510_3_motor.LPF_velocity.Tf = 0.035f; // filter for velocity
+  GB3510_3_motor.P_angle.P = 0.25f;
+  GB3510_3_motor.P_angle.I = 0.0f;
   GB3510_3_motor.P_angle.D = 0.001f;
-  GB3510_3_motor.P_angle.output_ramp = 5000;
-  GB3510_3_motor.LPF_angle.Tf = 0.0f;
-  GB3510_3_motor.velocity_limit = 7.0f;
+  GB3510_3_motor.P_angle.output_ramp = 2000;
+  GB3510_3_motor.LPF_angle.Tf = 0.05f;
+  GB3510_3_motor.velocity_limit = 3.0f;
 
   // //GB3510_4 motor parameters
   // //velocity PI controller parameters

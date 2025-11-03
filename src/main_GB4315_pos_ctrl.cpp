@@ -1,27 +1,76 @@
 #include <SimpleFOC.h>
+#include "custom_BLDCmotor.h"
 
 //help me package this somewhere
-#define motor_GB4315_PP 14
-#define motor_GB4315_R 13.84
-#define motor_GB4315_KV 28
-#define motor_GB4315_inductance 6.45
-#define motor_GB4315_ZEAngle 5.56
-#define motor_GB4315_sensor_direction Direction::CCW
-#define motor_GB4315_ZeroCalibratedAngle -(1.49f+M_PI) 
-#define motor_GB4315_HomeAngle 3.6f  // Define the home position angle (in radians)
-#define motor_GB4315_UPPER_LIMIT 5.0f
-#define motor_GB4315_LOWER_LIMIT 2.3f
+// #define motor_GB4315_PP 14
+// #define motor_GB4315_R 13.84
+// #define motor_GB4315_KV 28
+// #define motor_GB4315_Kt 0.47 //Nm/A
+// #define motor_GB4315_inductance 6.45e-3
+// #define motor_GB4315_ZEAngle 2.93f//4.02f
+// #define motor_GB4315_sensor_direction Direction::CW
+// #define motor_GB4315_ZeroCalibratedAngle 0.0f //IMPT!!!! code minus this away. so for angle use angle as is when at 0 position.
+// #define motor_GB4315_HomeAngle M_PI/3 // Define the home position angle (in radians)
+// #define motor_GB4315_UPPER_LIMIT 2.628f
+// #define motor_GB4315_LOWER_LIMIT 0.005f
 
-#define motor_GB6010_PP 14
-#define motor_GB6010_R 10.28
-#define motor_GB6010_KV 16
-#define motor_GB6010_inductance 12.35e-3
+#define motor_GB4315_PP 11
+#define motor_GB4315_R 2.55
+#define motor_GB4315_KV 220
+#define motor_GB4315_KT 0.06 //Nm/A
+#define motor_GB4315_INDUCTANCE 6.45
+#define motor_GB4315_ZEAngle 3.27f
+#define motor_GB4315_sensor_direction Direction::CCW
+#define motor_GB4315_ZeroCalibratedAngle 0.0f
+#define motor_GB4315_HomeAngle 1.1f  // Define the home position angle (in radians)
+#define motor_GB4315_UPPER_LIMIT 3.0f
+#define motor_GB4315_LOWER_LIMIT -0.5f
+
+
+#define MOTOR_GB6010_PP 14
+#define MOTOR_GB6010_R 5.14
+#define MOTOR_GB6010_KV 16
+#define MOTOR_GB6010_KT 0.61 //Nm/A
+#define MOTOR_GB6010_INDUCTANCE 6.175e-3f
 #define motor_GB6010_ZEAngle 0.05f
 #define motor_GB6010_sensor_direction Direction::CCW
 #define motor_GB6010_ZeroCalibratedAngle 2.97f-2*M_PI //IMPT!!!! code minus this away. so for angle use angle as is when at 0 position. PI adjustment is to avoid negative angles
 #define motor_GB6010_HomeAngle 1.2f  // Define the home position angle (in radians)
 #define motor_6010_UPPER_LIMIT 2.0f
 #define motor_6010_LOWER_LIMIT -0.5f
+
+#define motor_GB6025_PP 14
+#define motor_GB6025_R 1.675
+#define motor_GB6025_KV 16
+#define motor_GB6025_Kt 0.61 //Nm/A
+#define motor_GB6025_inductance 1.865e-3f
+#define motor_GB6025_ZEAngle 4.29f
+#define motor_GB6025_sensor_direction Direction::CCW
+#define motor_GB6025_ZeroCalibratedAngle -5.88f //IMPT!!!! code minus this away. so for angle use angle as is when at 0 position. PI adjustment is to avoid negative angles
+#define motor_GB6025_HomeAngle 1.2f  // Define the home position angle (in radians)
+#define motor_6010_UPPER_LIMIT 2.0f
+#define motor_6010_LOWER_LIMIT -0.5f
+
+
+#define MOTOR_GB3510_PP 11
+#define MOTOR_GB3510_R 4.265f
+#define MOTOR_GB3510_KV 80
+#define MOTOR_GB3510_KT 0.2f
+#define MOTOR_GB3510_INDUCTANCE 0.95e-3f
+#define MOTOR_GB3510_CURRENT_LIMIT 0.53f  // Maximum continuous current, original is 0.59, only run (0.8) with cooling
+
+
+#define JOINT1_ZE_ANGLE 6.11f
+#define JOINT1_SENSOR_DIRECTION Direction::CCW
+#define JOINT1_ZERO_CALIBRATED_ANGLE -2.94f
+
+// Joint 3 Configuration (GB3510 installed as compensator joint)
+#define JOINT3_ZE_ANGLE 3.45f
+#define JOINT3_SENSOR_DIRECTION Direction::CCW
+#define JOINT3_ZERO_CALIBRATED_ANGLE 0.444f
+#define JOINT3_HOME_ANGLE 0.0f
+#define JOINT3_UPPER_LIMIT -(0.752f - 0.001f)
+#define JOINT3_LOWER_LIMIT -(0.752f - 0.001f)
 
 #define BUTTON_PIN 3  // Pin connected to the button
 
@@ -153,20 +202,30 @@ MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
 
 //FilteredSensor filteredSensor = FilteredSensor(sensor);
 
+
 // BLDC motor & driver instance
-BLDCMotor motor = BLDCMotor(motor_GB4315_PP, motor_GB4315_R, motor_GB4315_KV, motor_GB4315_inductance);
-BLDCDriver3PWM driver = BLDCDriver3PWM(8,10,12);//arduino uno
+new_BLDCMotor motor = new_BLDCMotor(
+MOTOR_GB6010_PP, 
+MOTOR_GB6010_R, 
+MOTOR_GB6010_KV,
+MOTOR_GB6010_KT, 
+MOTOR_GB6010_INDUCTANCE
+);
+BLDCDriver3PWM driver = BLDCDriver3PWM(6,7,8);//arduino uno
 // Stepper motor & driver instance
 //StepperMotor motor = StepperMotor(50);
 //StepperDriver4PWM driver = StepperDriver4PWM(9, 5, 10, 6,  8);
 
 // angle set point variable
-float target_Angle = motor_GB4315_HomeAngle; // target angle value
+float target_Angle = 0.4f; // target angle value
 
 // instantiate the commander
 //PIDController pid = PIDController(10.0f,0.0f,0.0f,1000.0f,_PI); // 10,0,0
 Commander command = Commander(Serial);
 void doTarget(char* cmd) { command.scalar(&target_Angle, cmd); }
+
+// new: add command to set velocity PID P term via serial: send e.g. "P 0.25"
+void doVelP(char* cmd) { command.scalar(&motor.PID_velocity.P, cmd); }
 
 bool checkstarting() {
   sensor.update();
@@ -226,6 +285,7 @@ void onButtonISR() {
     }
 }
 
+InlineCurrentSense current_sense = InlineCurrentSense(0.01,50,A0,A1,_NC); // pin, gain, shunt resistance
 
 void setup() {
 
@@ -241,56 +301,73 @@ void setup() {
   driver.init();
   // link the motor and the driver
   motor.linkDriver(&driver);
+
+  //link current sense
+  current_sense.linkDriver(&driver);
+  
+
   // choose FOC modulation (optional)
   motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
 
   // set motion control loop to be used
-  motor.controller = MotionControlType::angle; // angle, velocity, torque, velocity_openloop, angle_openloop
-  //motor.torque_controller = TorqueControlType::voltage; // voltage, dc_current, foc_current
+  motor.controller = MotionControlType::torque; // angle, velocity, torque, velocity_openloop, angle_openloop
+  motor.torque_controller = TorqueControlType::foc_current; // voltage, dc_current, foc_current
   // contoller configuration
   // default parameters in defaults.h
 
   //velocity PI controller parameters
-  motor.PID_velocity.P = 0.5f;
-  motor.PID_velocity.I = 3.2f;
-  motor.PID_velocity.D = 0.0f;
-  motor.LPF_velocity.Tf = 0.07; // filter for velocity, needs to be around 0.05s
-
-  // maximal voltage to be set to the motor IMPTTTT!!!
-  motor.voltage_limit = 7.0f; // [V]
-  
-
-  // angle P controller
-  motor.P_angle.P = 4.0f;
-  motor.P_angle.I = 0.0f;
-  motor.P_angle.D = 5.2f;
-  motor.P_angle.output_ramp = 0.2f; // acceleration [rad/s^2
-  motor.LPF_angle.Tf = 0.12f; // filter for angle, needs to be around 0.1s
+  motor.PID_velocity.P = 0.36f;
+  motor.PID_velocity.I = 8.9f;
+  motor.PID_velocity.D = 0.001f;
+  motor.LPF_velocity.Tf = 0.035; // filter for velocity, needs to be around 0.05s
+  motor.velocity_limit = 7.0f; // [rad/s]
+  //angle P controller
+  motor.P_angle.P = 1.2f;
+  motor.P_angle.I = 0.05f;
+  motor.P_angle.D = 0.001f;
+  motor.P_angle.output_ramp = 5000; // acceleration [rad/s^2]
+  motor.LPF_angle.Tf = 0.0f; // filter for angle, needs to be around 0.1s
   // maximal velocity of the position control
-  motor.velocity_limit = 20.0f;
+  
+  
+  // maximal voltage to be set to the motor IMPTTTT!!!
+  motor.voltage_limit = 5.0f; // [V]
+  motor.voltage_sensor_align = 3.0f; // [V]
+  //motor.current_limit = 0.5f; // [A] for current controllers
+
 
   // use monitoring with serial
   Serial.begin(115200);
   // comment out if not needed
   motor.useMonitoring(Serial);
-  motor.voltage_sensor_align = 4.0f; // voltage used for sensor alignment
 
   // initialize motor
+  current_sense.gain_a *= -1.0f; // invert current sense if needed
+  current_sense.gain_b *= -1.0f; // invert current sense if needed
   motor.init();
+  current_sense.init();
+  motor.linkCurrentSense(&current_sense);
+  
   // align sensor and start FOC
-  motor.zero_electric_angle = motor_GB4315_ZEAngle; //  you can set it to a previously found value
-  motor.sensor_direction = motor_GB4315_sensor_direction; // you can set this to a previously found value
-  motor.sensor_offset = motor_GB4315_ZeroCalibratedAngle; // you can set this to a previously found value
+  if(true){
+    motor.zero_electric_angle = JOINT1_ZE_ANGLE; //  you can set it to a previously found value
+    motor.sensor_direction =    JOINT1_SENSOR_DIRECTION; // you can set this to a previously found value
+    motor.sensor_offset =       JOINT1_ZERO_CALIBRATED_ANGLE; // you can set this to a previously found value
+  }
+
+  current_sense.skip_align = true; // skip current sense alignment if previously done
+
   motor.initFOC(); // set to false to skip the alignment if the zero_electric_angle is set
   // add target command T
   command.add('T', doTarget, "target angle");
+  command.add('P', doVelP, "set velocity PID P");
   //command.add('C', onPid, "pid controller");
   
 
   // command.verbose = VerboseMode::machine_readable; // can be set using the webcontroller - optional
-  Serial.println(F("Motor ready."));
-  Serial.println(F("Set the target angle using serial terminal:"));
-  Serial.println("Starting...waiting for button press to start homing sequence");
+  // Serial.println(F("Motor ready."));
+  // Serial.println(F("Set the target angle using serial terminal:"));
+  // Serial.println("Starting...waiting for button press to start homing sequence");
 
   // Configure pin and attach ISR on FALLING edge
   pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -300,35 +377,29 @@ void setup() {
     CHANGE
   );
   
+  delay(1000);
 
 
   //Wait for button press with debounce
    Serial.println("Waiting for button press to start homing sequence...");
-    while (!buttonPressed) {
-        // Optional: Add watchdog or timeout
-        sensor.update();
-        Serial.print("Current Angle: ");
-        Serial.println(motor.shaftAngle());
-        delay(10); // Small delay to prevent tight loop
-    }
+    // while (!buttonPressed) {
+    //     // Optional: Add watchdog or timeout
+    //     sensor.update();
+    //     Serial.print("Current Angle: ");
+    //     Serial.println(motor.shaftAngle());
+    //     delay(10); // Small delay to prevent tight loop
+    // }
     
     // Update angle before checking
     sensor.update();
     
-    if (checkstarting()) {
-        Serial.println("Enter Error Loop: Motor not in starting position!");
-        while(1); // Halt execution
-    }
-
-  // Execute homing sequence
-  
-  delay(1000);
-  Serial.println("Starting homing sequence...");
-    goToHomePosition();
-  
-  Serial.println("Homing sequence completed. Motor is at home position.");
-  buttonPressed = false; // Reset button press flag
 }
+
+
+
+float K_spring = 0.0f; // Spring constant (Nm/rad)
+float C_damper = 1.2f; // Damping coefficient (Nm/(rad/s))
+float last_debug = 0.0f;
 
 
 
@@ -340,50 +411,72 @@ void loop() {
   // Bluepill loop ~10kHz
   sensor.update();
   
-  motor.loopFOC();
   
-  // Motion control function
-  // velocity, position or voltage (defined in motor.controller)
-  // this function can be run at much lower frequency than loopFOC() function
-  // You can also use motor.move() and set the motor.target in the code
-  motor.move(target_Angle);
-  //motor.move(target_Angle);
-  //Serial.print("Target Angle: "); Serial.println(target_Angle,3);
-  //Serial.print("Angle: "); Serial.println(DisplayAngle(sensor.getAngle()),3);
-  Serial.print("Motor shaft: "); Serial.println(motor.shaftAngle(),3);
-  // if (buttonPressed) {
-  //   Serial.println("Button pressed");
-  // }
 
-  //Serial.print("Sensor angle: "); Serial.println(sensor.getAngle(),3);
-  // function intended to be used with serial plotter to monitor motor variables
-  // significantly slowing the execution down!!!!
-  //Serial.println(motor.shaftVelocity());
+  // constrain target angle within limits
+  //target_Angle = constrain(target_Angle, motor_GB4315_LOWER_LIMIT, motor_GB4315_UPPER_LIMIT);
+
+  
+  float dtheta = motor.shaftVelocity();
+  float theta = motor.shaftAngle();
+
+  float ref_angle = target_Angle;
+  float torque_cmd = 
+       -K_spring * (theta - ref_angle)
+       -C_damper * dtheta;
+
+  float current_cmd = torque_cmd/0.47f; //Kt
+  
+  motor.loopFOC();
+
+  motor.move(current_cmd);
+
+  //current_cmd = constrain(current_cmd, -0.90f, 0.90f);
+
+  // motor.IMP_move(target_Angle);
+  PhaseCurrent_s currents = current_sense.getPhaseCurrents();
+  float current_magnitude = current_sense.getDCCurrent();
+
+
+
   //motor.monitor();
   // user communication
   command.run();
+  if (millis() - last_debug > 200) {
+    Serial.print("Target Angle: "); Serial.print(target_Angle,3);
+    Serial.print(", Motor Angle: "); Serial.print(motor.shaftAngle(),3);
+    // Serial.print(", Raw Sensor Angle: "); Serial.print(sensor.getAngle(),3);
+    // Serial.print(", Velocity: "); Serial.print(motor.shaftVelocity(),3);
+    Serial.print(", Motor Current Ia: "); Serial.print(currents.a,3);
+    Serial.print(", Motor Current Ib: "); Serial.print(currents.b,3);
+    Serial.print(", Motor Current Ic: "); Serial.print(currents.c,3);
+    Serial.print(", DC Current: "); Serial.print(current_magnitude,3);
+    Serial.print(", Motor Voltage Uq: "); Serial.print(motor.voltage.q,3);
+    Serial.print(", Motor Current Iq: "); Serial.print(motor.current.q,3);
+    //Serial.print(", Current Command: "); Serial.print(current_cmd,3);
+    Serial.println();
+    last_debug = millis();
+  }
+
+  // if (buttonPressed) {
+  //   delay(50); // Debounce delay
+  //   onButtonISR(); // Update button state
+  //   Serial.println("Button pressed! Entering error loop.");
+  //   motor.disable();
+
+  //   while (buttonPressed) {
+  //     // Wait for button release
+  //     delay(10);
+  //     Serial.print("press button again to exit error loop.");
+  //   }
 
 
-  if (buttonPressed) {
-    delay(50); // Debounce delay
-    onButtonISR(); // Update button state
-    Serial.println("Button pressed! Entering error loop.");
-    motor.disable();
-
-    while (buttonPressed) {
-      // Wait for button release
-      delay(10);
-      Serial.print("press button again to exit error loop.");
-    }
-
-
-    Serial.println("Exiting error loop. Resuming operation.");
-    motor.enable();
-    sensor.update();
-    target_Angle = motor.shaftAngle(); // Set target to current position
+  //   Serial.println("Exiting error loop. Resuming operation.");
+  //   motor.enable();
+  //   sensor.update();
+  //   target_Angle = motor.shaftAngle(); // Set target to current position
    
     
 
-  }
-  
 }
+

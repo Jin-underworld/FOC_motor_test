@@ -363,6 +363,8 @@ bool goToHomePosition(const MotorConfig& config, unsigned long timeout_ms) {
 //   command.scalar(&target_Angle_1, cmd); 
 // }
 
+
+//get all active joint motor angles with sensor offset
 void printRawMotorAngles() {
     updateAllEncoders();
     

@@ -70,7 +70,7 @@ extern "C" void __attribute__((weak)) HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 // Commander callback: T [idx angle] or T=angle (defaults to joint 1)
 void doTarget(char* cmd) {command.scalar(&target_Angle_1,cmd);}
 
-InlineCurrentSense M1_Current_sense = InlineCurrentSense(0.01,50,M1_CURR_SENS_A,M1_CURR_SENS_B);
+//InlineCurrentSense M1_Current_sense = InlineCurrentSense(0.01,50,M1_CURR_SENS_A,M1_CURR_SENS_B);
 
 void setup() {
   
@@ -120,7 +120,7 @@ void setup() {
   GB6025driver.init();
   GB6025motor.controller = MotionControlType::angle;
   GB6025motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
-  // GB6025 motor parameters
+  //GB6025 motor parameters
   //velocity PI controller parameters
   GB6025motor.PID_velocity.P = 0.59f;
   GB6025motor.PID_velocity.I = 8.9f;
@@ -145,21 +145,21 @@ void setup() {
   GB6010driver.pwm_frequency = 20000;
   GB6010motor.linkDriver(&GB6010driver);
   GB6010driver.init();
-  GB6010motor.controller = MotionControlType::torque;
+  GB6010motor.controller = MotionControlType::angle;
   GB6010motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
-  GB6010motor.torque_controller = TorqueControlType::voltage;
-  M1_Current_sense.linkDriver(&GB6010driver);
-  M1_Current_sense.init();
-  GB6010motor.linkCurrentSense(&M1_Current_sense);
+  //GB6010motor.torque_controller = TorqueControlType::voltage;
+  // M1_Current_sense.linkDriver(&GB6010driver);
+  // M1_Current_sense.init();
+  // GB6010motor.linkCurrentSense(&M1_Current_sense);
 
-  // GB6010 motor parameters
+  //GB6010 motor parameters
   //velocity PI controller parameters
-  GB6010motor.PID_velocity.P = 0.59f;
-  GB6010motor.PID_velocity.I = 8.9f;
+  GB6010motor.PID_velocity.P = 0.42f;
+  GB6010motor.PID_velocity.I = 7.1f;
   GB6010motor.PID_velocity.D = 0.001f;
   GB6010motor.LPF_velocity.Tf = 0.035; // filter for velocity, needs to be around 0.05s
   GB6010motor.P_angle.P = 0.32f;
-  GB6010motor.P_angle.I = 0.05f;
+  GB6010motor.P_angle.I = 0.03f;
   GB6010motor.P_angle.D = 0.001f;
   GB6010motor.P_angle.output_ramp = 5000;
   GB6010motor.LPF_angle.Tf = 0.0f;
@@ -168,9 +168,10 @@ void setup() {
   GB6010motor.zero_electric_angle =JOINT1_ZE_ANGLE;
   GB6010motor.sensor_direction=    JOINT1_SENSOR_DIRECTION;
   GB6010motor.sensor_offset=       JOINT1_ZERO_CALIBRATED_ANGLE;
-  GB6010motor.current_limit=2.5f;
-  GB6010motor.voltage_limit = 24.0f;
+  GB6010motor.current_limit=1.0f;
+  GB6010motor.voltage_limit = 5.0f;
   GB6010motor.enable();
+  GB6010motor.init();
   GB6010motor.initFOC();
   
   GB4315motor.linkSensor(&sensor2);
@@ -188,10 +189,13 @@ void setup() {
   GB4315motor.PID_velocity.D = 0.001f;
   GB4315motor.LPF_velocity.Tf = 0.12f; // filter for velocity, needs to be around 0.05s
   GB4315motor.P_angle.P = 0.5f;
-  GB4315motor.P_angle.I = 0.0f;
+  GB4315motor.P_angle.I = 0.03f;
   GB4315motor.P_angle.D = 0.001f;
   GB4315motor.P_angle.output_ramp = 2000;
   GB4315motor.LPF_angle.Tf = 0.05f;
+  //set limits
+  GB4315motor.voltage_sensor_align = 3.0f;
+  GB4315motor.voltage_limit = 7.0f;
   GB4315motor.velocity_limit = 2.0f;
   GB4315motor.enableMechanicalMode();
   GB4315motor.zero_electric_angle =JOINT2_ZE_ANGLE;
@@ -208,7 +212,7 @@ void setup() {
   GB3510_3_motor.controller = MotionControlType::angle;
   GB3510_3_motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
 
-  // GB4315 motor parameters
+  // GB3510_3 motor parameters
   //velocity PI controller parameters
   GB3510_3_motor.PID_velocity.P = 0.18f;
   GB3510_3_motor.PID_velocity.I = 5.3f;
@@ -273,7 +277,7 @@ void setup() {
 //   delay(1000);
   Serial2.println("Starting homing sequence...");
   
-  // goToHomePosition(GB6010_config);
+  //goToHomePosition(gb6010_config,5000);
   // goToHomePosition(gb6010_config);
   // goToHomePosition(gb4315_config);
   
@@ -315,20 +319,20 @@ void loop() {
 //   //standard position control
 //   digitalWrite(LED_BUILTIN, HIGH);
 
-//   Joint_motor[0]->loopFOC();
-//   Joint_motor[0]->move(target_Angle_0);
+  Joint_motor[0]->loopFOC();
+  Joint_motor[0]->move(target_Angle_0);
 
-//   GB6010motor.loopFOC();
-//   GB6010motor.move(target_Angle_1);
+  GB6010motor.loopFOC();
+  GB6010motor.move(target_Angle_1);
 
-//   Joint_motor[2]->loopFOC();
-//   Joint_motor[2]->move(target_Angle_2);//target_Angle_2
+  Joint_motor[2]->loopFOC();
+  Joint_motor[2]->move(target_Angle_2);//target_Angle_2
  
 
-//   Joint_motor[3]->loopFOC();
-//   Joint_motor[3]->move(target_Angle_3);
+  Joint_motor[3]->loopFOC();
+  Joint_motor[3]->move(target_Angle_3);
 
-   digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(LED_BUILTIN, LOW);
 
   //float* torque_imp = loopImpControl();
 
@@ -378,6 +382,7 @@ void loop() {
     //prints pos endeffector in Joint_motor space for Unity controller(rate limited)
     printPose();
     //printAllEncoders();
+    //printAllJointAngles();
     //printAllMechAngles();
     //printRawMotorAngles();
     //Serial2.print("Actual Angle: \n");

@@ -74,7 +74,7 @@ Pose6D forwardKinematics(void) {
     dhTransform(THETA[3]+DH_ZERO_OFFSET[3]+Motor_Move_Angle[3], ALPHA_DH[3], D_DH[3], R_DH[3], T34);//
     dhTransform(THETA[4]+DH_ZERO_OFFSET[4]+Motor_Move_Angle[4], ALPHA_DH[4], D_DH[4], R_DH[4], T45);//
     dhTransform(THETA[5]+DH_ZERO_OFFSET[5]+Motor_Move_Angle[5], ALPHA_DH[5], D_DH[5], R_DH[5], T56);//
-    dhTransform(0-Motor_Move_Angle[6],0,0,0,T67); //
+    dhTransform(0+Motor_Move_Angle[6],0,0,0,T67); //
     // Serial2.println("T23");
     // Serial2.println(T23[2][3]);
     // Combine all transforms: T_GE = TG0 * T01 * T12 * T23 * T3E
@@ -139,6 +139,8 @@ void printPose(void) {
 //     return 0
 // }
 
+
+//IMPT Final print for Unity controller, now yaw pitch roll in degrees, need to match with unity
 void printPose(const Pose6D &pose) {
     
     // Position
@@ -146,9 +148,9 @@ void printPose(const Pose6D &pose) {
     Serial2.print(pose.x, 2); Serial2.print(", ");
     Serial2.print(pose.y, 2); Serial2.print(", ");
     Serial2.print(pose.z, 2); Serial2.print(", ");
-    Serial2.print(pose.yaw);  Serial2.print(", "); 
-    Serial2.print(pose.pitch);Serial2.print(", ");
-    Serial2.print(pose.roll); Serial2.print(", ");
+    Serial2.print(RAD2DEG(pose.yaw), 2);   Serial2.print(", ");
+    Serial2.print(RAD2DEG(pose.pitch), 2); Serial2.print(", ");
+    Serial2.print(RAD2DEG(pose.roll), 2);  Serial2.print(", ");
     Serial2.print(0); Serial2.println("]");
     // Serial2.print("X: "); Serial2.print(pose.x, 2);
     // Serial2.print("  Y: "); Serial2.print(pose.y, 2);

@@ -35,6 +35,7 @@ void MultiplexedMagneticSensorI2C::update() {
 // Initialize I2C multiplexer
 void initializeI2CMultiplexer() {
     Wire2.begin();
+    Wire2.setClock(5000);
     multiplexer_tran.begin();
     //multiplexer_wrist.begin();
     Serial.println("I2C Multiplexer initialized");
@@ -105,58 +106,6 @@ void printAllMechEncoders() {
     Serial2.print(sensor6.getMechanicalAngle(), 3);
     Serial2.println("]");
 }
-
-float getAllJointAngles(int sensornumber){
-
-    float angle_rad = 0.0f;
-    switch (sensornumber) {
-        case 0: 
-            sensor0.update();
-            angle_rad = sensor0.getMechanicalAngle() - JOINT_CONFIGS[0].zero_calibrated_angle;
-            break;
-        case 1: 
-            sensor1.update();
-            angle_rad = sensor1.getMechanicalAngle() - JOINT_CONFIGS[1].zero_calibrated_angle;
-            break;
-        case 2: 
-            sensor2.update();
-            angle_rad = sensor2.getMechanicalAngle() - JOINT_CONFIGS[2].zero_calibrated_angle;
-            break;
-        case 3:
-            sensor3.update();
-            angle_rad = sensor3.getMechanicalAngle() - JOINT_CONFIGS[3].zero_calibrated_angle;
-            break;
-        // case 4:
-        //     sensor4.update();
-        //     angle_rad = sensor4.getMechanicalAngle() - JOINT_CONFIGS[4].zero_calibrated_angle;
-        //     break;
-        // case 5:
-        //     sensor5.update();
-        //     angle_rad = sensor5.getMechanicalAngle() - JOINT_CONFIGS[5].zero_calibrated_angle;
-        //     break;
-        // case 6:
-        //     sensor6.update();
-        //     angle_rad = sensor6.getMechanicalAngle() - JOINT_CONFIGS[6].zero_calibrated_angle;
-        //     break;
-        default: 
-            angle_rad = 0.0f;
-            // Serial2.println("Invalid joint number!");
-    }
-
-    return angle_rad;
-}
-
-void printAllJointAngles() {
-    updateAllEncoders();
-    
-    Serial2.print("[");
-    for (int i =0;i<NUMBER_OF_JOINTS;i++){
-    Serial2.print(getAllJointAngles(i), 3);
-    Serial2.print(",");
-    }
-    Serial2.println("]");
-}
-
 
 
 LowPassFilter LPFangle0 {0.1};

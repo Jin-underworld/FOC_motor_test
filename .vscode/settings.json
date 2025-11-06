@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "stm32freertos.h": "c",
+        "cmath": "cpp"
+    }
+    "workbench.colorTheme": "One Dark Pro Flat"
+}

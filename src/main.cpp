@@ -9,7 +9,6 @@
 
 bool useFakeImpedance = false; //Set if you want to use the fake Impedance controller
 
-Commander command = Commander(Serial2);
 
 //void doMotor(char *cmd) { command.motor(&GB4315motor, cmd); }
 
@@ -67,10 +66,49 @@ extern "C" void __attribute__((weak)) HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   }
 }
 
-// Commander callback: T [idx angle] or T=angle (defaults to joint 1)
-void doTarget(char* cmd) {command.scalar(&target_Angle_1,cmd);}
+static char inbuf[64];
+static uint8_t inlen = 0;
+volatile bool serial_command_flag = false;  // Flag that gets set by 0x01
 
-//InlineCurrentSense M1_Current_sense = InlineCurrentSense(0.01,50,M1_CURR_SENS_A,M1_CURR_SENS_B);
+
+void handleIncoming() {
+  while (Serial2.available()) {
+    char c = Serial2.read();
+    if (c == '\n') {
+      inbuf[inlen] = '\0';
+      if (inlen && inbuf[inlen - 1] == '\r') 
+        inbuf[inlen - 1] = '\0';
+
+      // Check for 0x01 command
+      if (strcmp(inbuf, "0x01") == 0) {
+        serial_command_flag = true;  // Set flag to true
+        Serial2.println("Command received: Flag set to TRUE");
+        digitalWrite(LED_BLUE, HIGH);
+        delay(50);
+        digitalWrite(LED_BLUE, LOW);
+        delay(50);
+        digitalWrite(LED_BLUE, HIGH);
+        delay(50);
+        digitalWrite(LED_BLUE, LOW);
+      }
+      // Check for reset/clear command
+      else if (strcmp(inbuf, "0x00") == 0 || strcmp(inbuf, "reset") == 0) {
+        serial_command_flag = false;  // Set flag to false
+        Serial2.println("Command received: Flag set to FALSE");
+      }
+      // Echo unknown commands
+      else if (inlen > 0) {
+        Serial2.print("Unknown command: ");
+        Serial2.println(inbuf);
+      }
+
+      inlen = 0;  // Reset buffer
+    }
+    else if (c != '\r' && inlen + 1 < sizeof(inbuf)) {
+      inbuf[inlen++] = c;
+    }
+  }
+}
 
 void setup() {
   
@@ -93,7 +131,7 @@ void setup() {
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
 
-  Serial2.setTx(SERIAL2_TX);  // USART2_TX on PD5
+Serial2.setTx(SERIAL2_TX);  // USART2_TX on PD5
   Serial2.setRx(SERIAL2_RX);  // USART2_RX on PD6
   Serial2.begin(BAUD_RATE);
   delay(100);
@@ -104,6 +142,7 @@ void setup() {
    
   //initialise sensors
   initializeI2CMultiplexer();
+  delay(1000);
   initializeSensors(); 
 
 //   //initialise motors
@@ -120,6 +159,7 @@ void setup() {
   GB6025driver.init();
   GB6025motor.controller = MotionControlType::angle;
   GB6025motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+  GB6025motor.torque_controller = TorqueControlType::voltage;
   //GB6025 motor parameters
   //velocity PI controller parameters
   GB6025motor.PID_velocity.P = 0.59f;
@@ -132,7 +172,7 @@ void setup() {
   GB6025motor.P_angle.output_ramp = 5000;
   GB6025motor.LPF_angle.Tf = 0.0f;
   GB6025motor.velocity_limit = 4.0f;
-  GB6025motor.enableMechanicalMode();
+  GB6025motor.enableFullRotationMode();
   GB6025motor.zero_electric_angle =JOINT0_ZE_ANGLE;
   GB6025motor.sensor_direction=    JOINT0_SENSOR_DIRECTION;
   GB6025motor.sensor_offset=       JOINT0_ZERO_CALIBRATED_ANGLE;
@@ -141,13 +181,13 @@ void setup() {
 
 
   GB6010motor.linkSensor(&sensor1);
-  GB6010driver.voltage_power_supply = driver_voltage_supply;
+  GB6010driver.voltage_power_supply = 24.0f;//driver_voltage_supply;
   GB6010driver.pwm_frequency = 20000;
   GB6010motor.linkDriver(&GB6010driver);
   GB6010driver.init();
-  GB6010motor.controller = MotionControlType::angle;
+  GB6010motor.controller = MotionControlType::torque;
   GB6010motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
-  //GB6010motor.torque_controller = TorqueControlType::voltage;
+  GB6010motor.torque_controller = TorqueControlType::voltage;
   // M1_Current_sense.linkDriver(&GB6010driver);
   // M1_Current_sense.init();
   // GB6010motor.linkCurrentSense(&M1_Current_sense);
@@ -164,12 +204,21 @@ void setup() {
   GB6010motor.P_angle.output_ramp = 5000;
   GB6010motor.LPF_angle.Tf = 0.0f;
   GB6010motor.velocity_limit = 4.0f;
-  GB6010motor.enableMechanicalMode();
+  GB6010motor.enableFullRotationMode();
   GB6010motor.zero_electric_angle =JOINT1_ZE_ANGLE;
   GB6010motor.sensor_direction=    JOINT1_SENSOR_DIRECTION;
   GB6010motor.sensor_offset=       JOINT1_ZERO_CALIBRATED_ANGLE;
-  GB6010motor.current_limit=1.0f;
-  GB6010motor.voltage_limit = 5.0f;
+  GB6010motor.current_limit= 1.8f;
+  GB6010motor.voltage_limit = 13.0f;
+  GB6010motor.PID_current_q.P = 1.2f;
+  GB6010motor.PID_current_q.I = 6.2f;
+  GB6010motor.PID_current_q.D = 0.0f;
+  GB6010motor.PID_current_q.output_ramp = 500;
+  GB6010motor.PID_current_d.P = 1.2;
+  GB6010motor.PID_current_d.I = 6.2f;
+  GB6010motor.PID_current_d.D = 0.0f;
+  GB6010motor.PID_current_d.output_ramp = 500;
+
   GB6010motor.enable();
   GB6010motor.init();
   GB6010motor.initFOC();
@@ -179,8 +228,9 @@ void setup() {
   GB4315driver.pwm_frequency = 20000;
   GB4315motor.linkDriver(&GB4315driver);
   GB4315driver.init();
-  GB4315motor.controller = MotionControlType::angle;
+  GB4315motor.controller = MotionControlType::torque;
   GB4315motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+  GB4315motor.torque_controller = TorqueControlType::voltage;
 
   // GB4315 motor parameters
   //velocity PI controller parameters
@@ -197,7 +247,7 @@ void setup() {
   GB4315motor.voltage_sensor_align = 3.0f;
   GB4315motor.voltage_limit = 7.0f;
   GB4315motor.velocity_limit = 2.0f;
-  GB4315motor.enableMechanicalMode();
+  GB4315motor.enableFullRotationMode();
   GB4315motor.zero_electric_angle =JOINT2_ZE_ANGLE;
   GB4315motor.sensor_direction=    JOINT2_SENSOR_DIRECTION;
   GB4315motor.sensor_offset=       JOINT2_ZERO_CALIBRATED_ANGLE;
@@ -209,26 +259,32 @@ void setup() {
   GB3510_3_driver.pwm_frequency = 20000;
   GB3510_3_motor.linkDriver(&GB3510_3_driver);
   GB3510_3_driver.init();
-  GB3510_3_motor.controller = MotionControlType::angle;
+  GB3510_3_motor.controller = MotionControlType::torque;
   GB3510_3_motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+  GB3510_3_motor.torque_controller = TorqueControlType::voltage;
 
   // GB3510_3 motor parameters
   //velocity PI controller parameters
-  GB3510_3_motor.PID_velocity.P = 0.18f;
-  GB3510_3_motor.PID_velocity.I = 5.3f;
-  GB3510_3_motor.PID_velocity.D = 0.001f;
-  GB3510_3_motor.LPF_velocity.Tf = 0.035f; // filter for velocity
-  GB3510_3_motor.P_angle.P = 1.7f;
-  GB3510_3_motor.P_angle.I = 0.01f;
-  GB3510_3_motor.P_angle.D = 0.001f;
-  GB3510_3_motor.P_angle.output_ramp = 2000;
-  GB3510_3_motor.LPF_angle.Tf = 0.05f;
-  GB3510_3_motor.velocity_limit = 3.0f;
-  GB3510_3_motor.enableMechanicalMode();
+ // VELOCITY LOOP - Reduce gains for high inertia
+  GB3510_3_motor.PID_velocity.P = 0.6f;      // Reduced from 1.5 (lower P = less aggressive)
+  GB3510_3_motor.PID_velocity.I = 2.5f;      // Reduced from 6.5 (prevents integral windup)
+  GB3510_3_motor.PID_velocity.D = 0.0f;      // Remove D term (adds noise with high inertia)
+  GB3510_3_motor.LPF_velocity.Tf = 0.1f;    // Increased filtering (was 0.035)
+  GB3510_3_motor.PID_velocity.output_ramp = 30.0f;  // Limit voltage rate of change
+  
+  // POSITION LOOP - Gentle position control for smooth motion
+  GB3510_3_motor.P_angle.P = 0.05f;          // Reduced from 0.3 (softer position response)
+  GB3510_3_motor.P_angle.I = 0.005f;           // Remove integral (was 0.02 - can cause overshoot)
+  GB3510_3_motor.P_angle.D = 0.003f;        // Small D for damping oscillations
+  GB3510_3_motor.P_angle.output_ramp = 300;  // MUCH lower ramp (was 2000 - too aggressive)
+  GB3510_3_motor.LPF_angle.Tf = 0.2f;       // More angle filtering (was 0.05)
+  
+  GB3510_3_motor.velocity_limit = 1.5f;      // Reduce max velocity (was 3.0)
+  GB3510_3_motor.voltage_limit = 8.0f;
+  GB3510_3_motor.enableFullRotationMode();
   GB3510_3_motor.zero_electric_angle =JOINT3_ZE_ANGLE;
   GB3510_3_motor.sensor_direction=    JOINT3_SENSOR_DIRECTION;
   GB3510_3_motor.sensor_offset=       JOINT3_ZERO_CALIBRATED_ANGLE;
-  GB3510_3_motor.voltage_limit =      3.0f;
   GB3510_3_motor.enable();
   GB3510_3_motor.initFOC();
 
@@ -294,11 +350,46 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 }
 
-// float K_spring = 2.0f; //spring Constant (Nm/rad)
-// float D_damper = 0.7f; //Damping constant (Nm/(rad/s))
 
+
+
+float K_spring = 0.71f; //spring Constant (Nm/rad)
+float D_damper = 0.19f; //Damping constant (Nm/(rad/s))
+float K_spring_2 = 0.3f; //spring Constant (Nm/rad)
+float D_damper_2 = 0.16f; //Damping constant (Nm/(rad/s))
+float K_spring_3 = 0.001f; //spring Constant (Nm/rad)
+float D_damper_3 = 0.003f; //Damping constant (Nm/(rad/s))
+float last_z = 0.0f;
+
+LowPassFilter theta_1_filter = LowPassFilter(0.1f);
+LowPassFilter dtheta_2_filter = LowPassFilter(0.2f);  // 
+LowPassFilter theta_2_filter = LowPassFilter(0.2f);  // 
+LowPassFilter dtheta_3_filter = LowPassFilter(0.04f);  // 
+LowPassFilter theta_3_filter = LowPassFilter(0.04f);  // 
+
+
+static const float tau_max_3 = 0.8f;     // max virtual torque [Nm]
+static const float tau_slew_3 = 1.5f;     // Nm/s limit on torque change
+static const float tau_fric_3 = 0.01f;    // Coulomb friction compensation [Nm]
+
+
+static uint32_t loop_timeout = 0;
 
 void loop() {
+
+  handleIncoming(); //SERIAL input from unity
+
+  if (serial_command_flag) {
+    // Do something when flag is true
+    Serial2.println("Flag is TRUE - executing special behavior");
+    // Your code here...
+  }
+  
+
+  loop_timeout = micros() - loop_timeout;
+  if (loop_timeout>= 2000){
+    restartI2CSystem();
+  }
   //Target angle constrains
 //   float target_Angle_0 = constrain(target_Angle_0,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
 //   float target_Angle_1 = constrain(target_Angle_1,JOINT1_LOWER_LIMIT,JOINT1_UPPER_LIMIT);
@@ -318,19 +409,71 @@ void loop() {
 
 //   //standard position control
 //   digitalWrite(LED_BUILTIN, HIGH);
+  float force_feedback = 0.0f;
 
-  Joint_motor[0]->loopFOC();
-  Joint_motor[0]->move(target_Angle_0);
+  // Joint_motor[0]->loopFOC();
+  // Joint_motor[0]->move(target_Angle_0);
+
+
+  //pseudo force feedback
+  if (serial_command_flag){
+    float current_depth = last_z - forwardKinematics().z;
+    force_feedback = current_depth * 0.3f/5.0f;//current over total allowavble depth
+  }
+  else{
+    last_z = forwardKinematics().z;
+  }
+
+  //really fake force feedback, take away once serial working
+  if (getMotorRawAngle(&GB6010motor)<=0.65f){
+    force_feedback = 0.7f; //(0.65f-getMotorRawAngle(&GB6010motor))+0.1f;
+  }
+  else{
+    force_feedback = 0.0f;
+  }
+
+
+  //Impedance control Master
+  float dtheta =GB6010motor.shaftVelocity();
+  float theta = theta_1_filter(getMotorRawAngle(&GB6010motor));
+
+  float torque_cmd = 
+      -K_spring * (theta-M_PI_2)
+      -D_damper * dtheta;
+
+  torque_cmd = torque_cmd/0.61f;
 
   GB6010motor.loopFOC();
-  GB6010motor.move(target_Angle_1);
+  GB6010motor.move(torque_cmd);//positive brings the joint 1 up to help player
+
+
+  float dtheta_2 =dtheta_2_filter(GB4315motor.shaftVelocity());
+  float theta_2 = theta_2_filter(getMotorRawAngle(&GB4315motor));
+
+  float torque_cmd_4315 = 
+      -K_spring_2 * -(2.1f - theta_2)
+      -D_damper_2 * dtheta_2;
+
+  torque_cmd_4315 = torque_cmd_4315/0.47f;
 
   Joint_motor[2]->loopFOC();
-  Joint_motor[2]->move(target_Angle_2);//target_Angle_2
+  Joint_motor[2]->move(torque_cmd_4315);//negative brings the joint 2 in to help player
+
+  float dtheta_3 = dtheta_3_filter(GB3510_3_motor.shaftVelocity());
+  float theta_3  = theta_3_filter(getMotorRawAngle(&GB3510_3_motor));
+  const float theta_ref_3 = M_PI;
+
+  // Impedance PD with clear sign
+  float e3    = theta_ref_3 - theta_3;
+  float torque_cmd_3510 = -K_spring_3 * e3
+              - D_damper_3 * dtheta_3;
+
+
+  torque_cmd_3510 = torque_cmd_3510/0.2f;
  
 
   Joint_motor[3]->loopFOC();
-  Joint_motor[3]->move(target_Angle_3);
+  Joint_motor[3]->move(torque_cmd_3510);
 
   digitalWrite(LED_BUILTIN, LOW);
 
@@ -364,27 +507,18 @@ void loop() {
 
 
 
-  // //test branch: impedance control only on 6010motor, used as reference for full implementation
-  // float dtheta =GB6010motor.shaft_velocity;
-  // float theta = GB6010motor.shaft_angle;
 
-  // float torque_cmd = 
-  //     -K_spring * (theta - target_Angle_1)
-  //     -D_damper * dtheta;
-
-  // torque_cmd = constrain(torque_cmd,-0.9f,2.0f);
-  // torque_cmd = torque_cmd/0.61f;
 
   
   static uint32_t last_debug = 0;
 
-  if(micros() - last_debug > 10000) {  // Print every 10 miilisecond
+  if(micros() - last_debug > 10000) {  // Print every 100 miilisecond
     //prints pos endeffector in Joint_motor space for Unity controller(rate limited)
     printPose();
     //printAllEncoders();
-    //printAllJointAngles();
     //printAllMechAngles();
-    //printRawMotorAngles();
+    //printAllJointAngles();
+    
     //Serial2.print("Actual Angle: \n");
     //Serial2.println(GB6025motor.shaftAngle(),3);
     //Serial2.println(GB6025motor.shaftVelocity(),3);
@@ -407,21 +541,51 @@ void loop() {
     last_debug = micros();
   }
 
-//   if (millis() - last_debug > 200) {
-//     Serial2.print("Target torque: "); Serial2.print(target_torque,3);
-//     Serial2.print(", Motor Angle: "); Serial2.print(Joint_motor[1]->shaftAngle(),3);
-//     Serial2.print(", Raw Sensor Angle: "); Serial2.print(sensor1.getAngle(),3);
-//     Serial2.print(", Velocity: "); Serial2.print(Joint_motor[1]->shaftVelocity(),3);
-//     Serial2.print(", Motor Voltage Uq: "); Serial2.print(Joint_motor[1]->voltage.q,3);
-//     Serial2.print(", Motor Current Iq: "); Serial2.print(Joint_motor[1]->current.q,3);
-//     //Serial.print(", Current Command: "); Serial.print(current_cmd,3);
-//     Serial2.println();
-//     last_debug = millis();
-//   }
+  // if (millis() - last_debug > 20) {
+  //   //Serial2.print("Target torque: "); Serial2.print(torque_cmd,3);
+  //   Serial2.print(", Motor Angle: "); Serial2.print(getMotorRawAngle(Joint_motor[3]),3);
+  //   //Serial2.print(", J5 angle: "); Serial2.print(getAllMechAngles(5),3);
+  //   //Serial2.print(", Raw Sensor Angle: "); Serial2.print(sensor1.getAngle(),3);
+  //   //Serial2.print(", Velocity: "); Serial2.print(Joint_motor[1]->shaftVelocity(),3);
+  //   Serial2.print(", Motor Voltage Uq: "); Serial2.print(Joint_motor[3]->voltage.q,3);
+  //   Serial2.print(", Motor Current Iq: "); Serial2.print(Joint_motor[3]->current.q,3);
+  //   //Serial.print(", Current Command: "); Serial.print(current_cmd,3);
+  //   Serial2.println();
+  //   last_debug = millis();
+  // }
 
-  command.run();
+  // command.run();
 
   ButtonChecker();
+  if (buttonPressed && useFakeImpedance){
+    delay(50); // Debounce delay
+    
+    Serial2.println("In homing mode");
+    GB6025motor.controller = MotionControlType::angle;
+    GB6025motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+    GB6010motor.controller = MotionControlType::angle;
+    GB6010motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+    GB4315motor.controller = MotionControlType::angle;
+    GB4315motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+    GB3510_3_motor.controller = MotionControlType::angle;
+    GB3510_3_motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
+    while(buttonPressed){
+      ButtonChecker();
+ 
+      GB6025motor.loopFOC();
+      GB6025motor.move(JOINT_CONFIGS[0].home_angle);
+      GB6010motor.loopFOC();
+      GB6010motor.move(JOINT_CONFIGS[1].home_angle);
+      GB6010motor.loopFOC();
+      GB6010motor.move(JOINT_CONFIGS[2].home_angle);
+      GB6010motor.loopFOC();
+      GB6010motor.move(JOINT_CONFIGS[3].home_angle);
+    }
+    Serial2.println("Exiting homing mode, returning to play");
+      
+
+
+  }
   if (buttonPressed && !useFakeImpedance) {
     delay(50); // Debounce delay
     

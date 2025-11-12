@@ -15,6 +15,7 @@ float getSensorAngleKinematics(int joint);
 void matMul4x4(const float A[4][4], const float B[4][4], float R[4][4]);
 void dhTransform(float theta, float alpha, float d, float r, float T[4][4]);
 Pose6D forwardKinematics(void);
+static inline float eePitchFromHorizontal(const float TGE[4][4]);
 
 void printPose(void);
 void printPose(const Pose6D &pose);

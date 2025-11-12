@@ -48,5 +48,9 @@ void printAllJointAngles();
 float getAllMechAngles(int sensornumber);
 void printAllMechAngles();
 
+bool recoverI2CBus();
+void restartI2CSystem();
+bool safeUpdateSensor(MultiplexedMagneticSensorI2C& sensor, uint8_t port, uint32_t timeout_ms);
+
 
 #endif // SENSOR_HELPER_H

@@ -34,8 +34,13 @@ void MultiplexedMagneticSensorI2C::update() {
 
 // Initialize I2C multiplexer
 void initializeI2CMultiplexer() {
+    Wire2.setClock(50000);
     Wire2.begin();
-    Wire2.setClock(5000);
+
+    
+    //Wire2.setTimeout(2);
+    
+    
     multiplexer_tran.begin();
     //multiplexer_wrist.begin();
     Serial.println("I2C Multiplexer initialized");
@@ -56,16 +61,37 @@ void initializeSensors() {
 }
 
 // Update all sensors
-void updateAllEncoders() {
-    sensor0.update();
-    sensor1.update();
-    sensor2.update();
-    //sensorBarrier.update();
-    sensor3.update();
-    sensor4.update();
-    sensor5.update();
-    sensor6.update();
-}
+// void updateAllEncoders() {
+//     // multiplexer_tran.selectPort(0);
+//     // delayMicroseconds(200);
+//     // sensor0.update();
+    
+//     multiplexer_tran.selectPort(1);
+//     delayMicroseconds(200);
+//     sensor1.update();
+    
+//     // multiplexer_tran.selectPort(2);
+//     // delayMicroseconds(200);
+//     // sensor2.update();
+    
+//     // sensorBarrier.update();
+//     multiplexer_tran.selectPort(3);
+//     delayMicroseconds(200);
+//     sensor3.update();
+    
+//     multiplexer_tran.selectPort(4);
+//     delayMicroseconds(200);
+//     sensor4.update();
+    
+//     multiplexer_tran.selectPort(5);
+//     delayMicroseconds(200);
+//     sensor5.update();
+    
+//     multiplexer_tran.selectPort(6);
+//     delayMicroseconds(200);
+//     sensor6.update();
+    
+// }
 
 void printAllEncoders() {
     updateAllEncoders();
@@ -165,4 +191,131 @@ void printAllMechAngles() {
     Serial2.print(",");
     }
     Serial2.println("]");
+}
+
+// ...existing includes...
+
+bool recoverI2CBus() {
+    // 1) Release I2C peripheral
+    Wire2.end();
+    
+    // 2) Configure pins as GPIO open-drain
+    pinMode(PIN_SCL, OUTPUT_OPEN_DRAIN);
+    pinMode(PIN_SDA, INPUT_PULLUP);
+    digitalWrite(PIN_SCL, HIGH);
+    delayMicroseconds(10);
+    
+    // 3) Check if SCL is stuck low (slave holding it)
+    pinMode(PIN_SCL, INPUT_PULLUP);
+    bool scl_ok = (digitalRead(PIN_SCL) == HIGH);
+    pinMode(PIN_SCL, OUTPUT_OPEN_DRAIN);
+    digitalWrite(PIN_SCL, HIGH);
+    
+    if (!scl_ok) {
+        //Serial2.println("I2C: SCL stuck low - hardware issue");
+        // Continue anyway - might still recover
+    }
+    
+    // 4) Clock SCL up to 9 times to let slave finish byte transmission
+    for (int i = 0; i < 9 && digitalRead(PIN_SDA) == LOW; i++) {
+        digitalWrite(PIN_SCL, LOW);
+        delayMicroseconds(5);
+        digitalWrite(PIN_SCL, HIGH);
+        delayMicroseconds(5);
+    }
+    
+    // 5) Send STOP condition: SDA low->high while SCL high
+    pinMode(PIN_SDA, OUTPUT_OPEN_DRAIN);
+    digitalWrite(PIN_SDA, LOW);
+    delayMicroseconds(5);
+    digitalWrite(PIN_SCL, HIGH);
+    delayMicroseconds(5);
+    digitalWrite(PIN_SDA, HIGH);
+    delayMicroseconds(10);
+    
+    // 6) Release pins and restart I2C
+    pinMode(PIN_SDA, INPUT_PULLUP);
+    pinMode(PIN_SCL, INPUT_PULLUP);
+    
+    // 7) Reinitialize I2C
+    Wire2.begin();
+    Wire2.setClock(50000); // Keep your current speed
+    
+    //Serial2.println("I2C bus recovery attempted");
+    return true;
+}
+
+void restartI2CSystem() {
+    //Serial2.println("Restarting I2C system...");
+    
+    // Recover the bus first
+    recoverI2CBus();
+    
+    // Test if multiplexer is working by trying to select a port
+    bool mux_ok = true;
+    for (int port = 0; port < 8; port++) {
+        Wire2.beginTransmission(0x70); // multiplexer address
+        if (Wire2.endTransmission() != 0) {
+            mux_ok = false;
+            break;
+        }
+    }
+    
+    if (mux_ok) {
+        //Serial2.println("Multiplexer communication OK");
+    } else {
+        //Serial2.println("Multiplexer communication failed");
+    }
+    
+    // Reinitialize sensors that are active
+    sensor0.init(&Wire2);
+    sensor1.init(&Wire2);
+    sensor2.init(&Wire2);
+    sensor3.init(&Wire2);
+    sensor4.init(&Wire2);
+    sensor5.init(&Wire2);
+    sensor6.init(&Wire2);
+    
+    //Serial2.println("I2C system restart complete");
+}
+
+// Add timeout-protected sensor update
+bool safeUpdateSensor(MultiplexedMagneticSensorI2C& sensor, uint8_t port, uint32_t timeout_ms = 1) {
+    multiplexer_tran.selectPort(port);
+    delayMicroseconds(50);
+    
+    uint32_t start = millis();
+    sensor.update();
+    
+    // Check if update took too long (indicates I2C timeout/hang)
+    if (millis() - start > timeout_ms) {
+        //Serial2.print("I2C timeout on port "); Serial2.println(port);
+        return false;
+    }
+    return true;
+}
+
+// Modified update function with recovery
+void updateAllEncoders() {
+    static uint8_t error_count = 0;
+    bool success = true;
+    
+    success &= safeUpdateSensor(sensor0, 0);
+    success &= safeUpdateSensor(sensor1, 1);
+    success &= safeUpdateSensor(sensor2, 2);
+    success &= safeUpdateSensor(sensor3, 3); 
+    success &= safeUpdateSensor(sensor4, 4);
+    success &= safeUpdateSensor(sensor5, 5);
+    success &= safeUpdateSensor(sensor6, 6);
+    
+    if (!success) {
+        error_count++;
+        if (error_count >= 3) {  // After 3 consecutive errors
+            //Serial2.println("Multiple I2C errors - recovering bus");
+            restartI2CSystem();
+            error_count = 0;
+        }
+    } else {
+        error_count = 0;  // Reset on success
+    }
 }

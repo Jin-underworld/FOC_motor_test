@@ -46,7 +46,7 @@ public:
     void enableMechanicalMode() { use_mechanical_only = true; }
     void enableFullRotationMode() { use_mechanical_only = false; }
 
-    LowPassFilter mech_angle_lpf{0.0f};  // per-motor mechanical angle LPF (Tf=0 disables)
+    LowPassFilter mech_angle_lpf{0.02f};  // per-motor mechanical angle LPF (Tf=0 disables)
     void setMechanicalAngleTf(float Tf) { mech_angle_lpf.Tf = Tf; }
 
 private:

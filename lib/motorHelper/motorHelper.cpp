@@ -398,7 +398,7 @@ void printRawMotorAngles() {
 //   return raw_angle;
 // }
 
-// Get motor angle (0-2π) with direction and offset but without revolution counting
+// use &motor, Get motor angle (0-2π) with direction and offset but without revolution counting
 float getMotorRawAngle(ExtendedBLDCMotor* motor) {
 if(!motor->sensor) return 0;
 

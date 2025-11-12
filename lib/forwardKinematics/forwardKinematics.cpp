@@ -58,6 +58,12 @@ void dhTransform(float theta, float alpha, float d, float r, float T[4][4]) {
     T[3][0] = 0;     T[3][1] = 0;         T[3][2] = 0;         T[3][3] = 1;
 }
 
+static inline float eePitchFromHorizontal(const float TGE[4][4]) {
+    float r02 = TGE[0][2], r12 = TGE[1][2], r22 = TGE[2][2];
+    return atan2f(r22, sqrtf(r02*r02 + r12*r12)); // [-pi/2, +pi/2]
+    }
+
+
 Pose6D forwardKinematics(void) {
     float T01[4][4], T12[4][4], T23[4][4], T34[4][4], T45[4][4], T56[4][4], T67[4][4];
     
@@ -67,18 +73,23 @@ Pose6D forwardKinematics(void) {
         Motor_Move_Angle[i] = getAllMechAngles(i);
     }
 
+
+     // Compute each DH transform using parameters from kinematicsConfig.h, the offset is added
+    
+   
+    //SAVE
     // Compute each DH transform using parameters from kinematicsConfig.h, the offset is added
-    dhTransform(THETA[0]+DH_ZERO_OFFSET[0]+Motor_Move_Angle[0], ALPHA_DH[0], D_DH[0], R_DH[0], T01);//
-    dhTransform(THETA[1]+DH_ZERO_OFFSET[1]+Motor_Move_Angle[1], ALPHA_DH[1], D_DH[1], R_DH[1], T12);//
-    dhTransform(THETA[2]+DH_ZERO_OFFSET[2]+Motor_Move_Angle[2], ALPHA_DH[2], D_DH[2], R_DH[2], T23);//
-    dhTransform(THETA[3]+DH_ZERO_OFFSET[3]+Motor_Move_Angle[3], ALPHA_DH[3], D_DH[3], R_DH[3], T34);//
-    dhTransform(THETA[4]+DH_ZERO_OFFSET[4]+Motor_Move_Angle[4], ALPHA_DH[4], D_DH[4], R_DH[4], T45);//
-    dhTransform(THETA[5]+DH_ZERO_OFFSET[5]+Motor_Move_Angle[5], ALPHA_DH[5], D_DH[5], R_DH[5], T56);//
-    dhTransform(0+Motor_Move_Angle[6],0,0,0,T67); //
+    dhTransform(THETA[0]+Motor_Move_Angle[0], ALPHA_DH[0], D_DH[0], R_DH[0], T01);//DH_ZERO_OFFSET[0]
+    dhTransform(THETA[1]+Motor_Move_Angle[1], ALPHA_DH[1], D_DH[1], R_DH[1], T12);//DH_ZERO_OFFSET[1]
+    dhTransform(THETA[2]+Motor_Move_Angle[2], ALPHA_DH[2], D_DH[2], R_DH[2], T23);//DH_ZERO_OFFSET[2]
+    dhTransform(THETA[3]+Motor_Move_Angle[3], ALPHA_DH[3], D_DH[3], R_DH[3], T34);//DH_ZERO_OFFSET[3]
+    dhTransform(THETA[4]+Motor_Move_Angle[4], ALPHA_DH[4], D_DH[4], R_DH[4], T45);//DH_ZERO_OFFSET[4]
+    dhTransform(THETA[5]+Motor_Move_Angle[5], ALPHA_DH[5], D_DH[5], R_DH[5], T56);//DH_ZERO_OFFSET[5]
+    dhTransform(Motor_Move_Angle[6],0,0,0,T67); //
     // Serial2.println("T23");
     // Serial2.println(T23[2][3]);
     // Combine all transforms: T_GE = TG0 * T01 * T12 * T23 * T3E
-    float T02[4][4], T03[4][4],T04[4][4],T05[4][4],T06[4][4],T07[4][4],TGE[4][4];
+    float T02[4][4], T03[4][4],T04[4][4],T05[4][4],T06[4][4],T07[4][4],TGE[4][4],TG3[4][4];
     matMul4x4(T01, T12, T02);
     // Serial2.println("T01");
     // Serial2.println(T01[0][3]);
@@ -105,22 +116,50 @@ Pose6D forwardKinematics(void) {
     // Serial2.println(T05[2][3]);
     matMul4x4(T05, T56, T06); 
     matMul4x4(T06, T67, T07); 
-    matMul4x4(TG0, T07, TGE);
-    //TGE = TG3; //treat End effector as joint 3 for now
-    // printMatrix(T01, "T01");
-    // printMatrix(T12, "T12");
-    // printMatrix(T23, "T23");
-    // printMatrix(TGE, "Final Transform TGE");
+    matMul4x4(TG0, T07, TGE); //7 is end effector already
+    matMul4x4(TG0,T04,TG3);
+    
 
     Pose6D pose;
+    // pose.x = TG3[0][3];
+    // pose.y = TG3[1][3];
+    // pose.z = TG3[2][3];
+
+    // // Extract Euler angles (ZYX convention)
+    // pose.pitch =atan2f(-TG3[2][0], sqrtf(TG3[0][0]*TG3[0][0] + TG3[1][0]*TG3[1][0]));
+    // pose.yaw   = atan2f(TG3[1][0], TG3[0][0]);
+    // pose.roll  = 0.0f;//atan2f(TGE[2][1], TGE[2][2]);
+
     pose.x = TGE[0][3];
     pose.y = TGE[1][3];
     pose.z = TGE[2][3];
 
+    
+
     // Extract Euler angles (ZYX convention)
-    pose.pitch = atan2f(-TGE[2][0], sqrtf(TGE[0][0]*TGE[0][0] + TGE[1][0]*TGE[1][0]));
+    pose.pitch = eePitchFromHorizontal(TGE);
+    //pose.pitch =atan2f(-TGE[2][0], sqrtf(TGE[0][0]*TGE[0][0] + TGE[1][0]*TGE[1][0]));
     pose.yaw   = atan2f(TGE[1][0], TGE[0][0]);
-    pose.roll  = atan2f(TGE[2][1], TGE[2][2]);
+    pose.roll  = 0.0f;//atan2f(TGE[2][1], TGE[2][2]);
+
+
+    //     Serial2.println("TGE rotation:");
+    // for(int i=0; i<3; i++){
+    //     for(int j=0; j<3; j++){
+    //         Serial2.print(TGE[i][j], 3); Serial2.print("\t");
+    //     }
+    //     Serial2.println();
+    // }
+    // Serial2.print("Tool Z: [");
+    // Serial2.print(TGE[0][2], 3); Serial2.print(", ");
+    // Serial2.print(TGE[1][2], 3); Serial2.print(", ");
+    // Serial2.print(TGE[2][2], 3); Serial2.println("]");
+
+    // // Alternative: “pitch from horizontal” (±π/2 at straight up/down)
+    // float r02 = TGE[0][2], r12 = TGE[1][2], r22 = TGE[2][2];
+    // float tilt_vert = atan2f(sqrtf(r02*r02 + r12*r12), r22); // 0..π
+    // float pitch_from_horizontal = tilt_vert - (float)M_PI_2; // −π/2..+π/2
+    // pose.pitch=pitch_from_horizontal;
 
     return pose;
 }
@@ -139,6 +178,7 @@ void printPose(void) {
 //     return 0
 // }
 
+//addcomment
 
 //IMPT Final print for Unity controller, now yaw pitch roll in degrees, need to match with unity
 void printPose(const Pose6D &pose) {

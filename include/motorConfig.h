@@ -57,15 +57,15 @@
 // Joint 1 Configuration (GB6010 installed as shoulder joint)
 #define JOINT1_ZE_ANGLE 6.11f//1.71f
 #define JOINT1_SENSOR_DIRECTION Direction::CCW
-#define JOINT1_ZERO_CALIBRATED_ANGLE -2.94f + M_PI
+#define JOINT1_ZERO_CALIBRATED_ANGLE -5.9005f
 #define JOINT1_HOME_ANGLE (M_PI/3)
 #define JOINT1_UPPER_LIMIT (1.601f - 0.001f)
 #define JOINT1_LOWER_LIMIT -(0.007f - 0.001f)
 
 // Joint 2 Configuration (GB4315 installed as elbow joint)
-#define JOINT2_ZE_ANGLE 2.56f
+#define JOINT2_ZE_ANGLE 3.20f
 #define JOINT2_SENSOR_DIRECTION Direction::CCW
-#define JOINT2_ZERO_CALIBRATED_ANGLE -2.152f
+#define JOINT2_ZERO_CALIBRATED_ANGLE -2.134f
 #define JOINT2_HOME_ANGLE 2.0f
 #define JOINT2_UPPER_LIMIT (2.628f - 0.001f)
 #define JOINT2_LOWER_LIMIT (0.005f - 0.001f)
@@ -73,7 +73,7 @@
 // Joint 3 Configuration (GB3510 installed as compensator joint)
 #define JOINT3_ZE_ANGLE 3.45f
 #define JOINT3_SENSOR_DIRECTION Direction::CCW
-#define JOINT3_ZERO_CALIBRATED_ANGLE -5.877f
+#define JOINT3_ZERO_CALIBRATED_ANGLE -5.795f
 #define JOINT3_HOME_ANGLE 0.0f
 #define JOINT3_UPPER_LIMIT -(0.752f - 0.001f)
 #define JOINT3_LOWER_LIMIT -(0.752f - 0.001f)
@@ -81,7 +81,7 @@
 // Joint 4 Configuration (GB3510 installed as pitch joint)
 // #define JOINT4_ZE_ANGLE 3.45f
 #define JOINT4_SENSOR_DIRECTION Direction::CCW
-#define JOINT4_ZERO_CALIBRATED_ANGLE -0.183f
+#define JOINT4_ZERO_CALIBRATED_ANGLE -1.740f
 // #define JOINT4_HOME_ANGLE 0.0f
 // #define JOINT4_UPPER_LIMIT -(0.752f - 0.001f)
 // #define JOINT4_LOWER_LIMIT -(0.752f - 0.001f)
@@ -89,7 +89,7 @@
 // Joint 5 Configuration (no motor)
 // #define JOINT5_ZE_ANGLE 3.45f
 #define JOINT5_SENSOR_DIRECTION Direction::CCW
-#define JOINT5_ZERO_CALIBRATED_ANGLE -1.578f
+#define JOINT5_ZERO_CALIBRATED_ANGLE -4.812f
 // #define JOINT5_HOME_ANGLE 0.0f
 // #define JOINT5_UPPER_LIMIT -(0.752f - 0.001f)
 // #define JOINT5_LOWER_LIMIT -(0.752f - 0.001f)
@@ -97,7 +97,7 @@
 // Joint 6 Configuration (no motor, last till end effector)
 // #define JOINT6_ZE_ANGLE 3.45f
 #define JOINT6_SENSOR_DIRECTION Direction::CCW
-#define JOINT6_ZERO_CALIBRATED_ANGLE -1.051f
+#define JOINT6_ZERO_CALIBRATED_ANGLE -4.087f
 // #define JOINT6_HOME_ANGLE 0.0f
 // #define JOINT6_UPPER_LIMIT -(0.752f - 0.001f)
 // #define JOINT6_LOWER_LIMIT -(0.752f - 0.001f)

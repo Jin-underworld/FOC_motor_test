@@ -21,9 +21,10 @@
 #define LINK2_DH_LENGTH 152.61f 
 #define LINK3_LENGTH_NO_ANGLE 86.9f
 #define LINK3_ANGLED_OFFSET_LENGTH 94.0f
-#define LINK3_ANGLE 37.5f
-#define ENDEFF_FROM_J3 92.65
+#define LINK3_ANGLE 65.0f//33.93
+#define ENDEFF_FROM_J3 17.0f//92.65
 #define ANGLE_BTW_LINK1_LINK2 46.22f
+#define fucked_Angle 31.07f
 
 // wrist joints. length represents the distnace of the "height" of link 4. the other links propogate
 // from the height of link 4. THEREFORE, link4 breadth is the same as link5 breadth (since they are at the same joint)
@@ -50,26 +51,24 @@
 // frames are all defined AT the joint itself. hence R, should tbe shortest distance between frames along x.
 // 5 columns, 0T1, 1T2, 2T3, 3T4, 4T5, 5T6
 // For wrist, only dist from j3 to end eff matters : https://robotics.stackexchange.com/questions/22613/4-axis-gimbal-nodal-robot-dh-parameters
-static const float D_DH[NUMBER_OF_JOINTS-1]         = {LINK0_LENGTH, 0.0f        , 0.0f                , ENDEFF_FROM_J3, 0.0f     , 0.0f     }; // Link offset along Z axis (mm)
-static const float THETA[NUMBER_OF_JOINTS-1]        = {0.0f        , 0.0f        ,-DEG2RAD(LINK3_ANGLE), 0.0f          , M_PI/2   , M_PI/2}; // Angle around z axis (rad)
-static const float R_DH[NUMBER_OF_JOINTS-1]         = {0.0f        , LINK1_LENGTH, LINK2_DH_LENGTH     , 0.0f          , 0.0f     , 0.0f     }; // Link length along X axis (mm)
-static const float ALPHA_DH[NUMBER_OF_JOINTS-1]     = {M_PI/2      ,-M_PI        , M_PI/2             ,-M_PI/2        , M_PI/2   ,-M_PI/2}; // Twist angle around X axis (rad)
-static const float DH_ZERO_OFFSET[NUMBER_OF_JOINTS-1]={0.0f        , 0.0f        , 0.0f                ,-M_PI/2         , -M_PI     , -M_PI/2}; // Offset between DH ZERO(the x axis) and the motor calibrated zero (rad)
+static const float D_DH[NUMBER_OF_JOINTS-1]         = {LINK0_LENGTH, 0.0f        , 0.0f                , ENDEFF_FROM_J3, 0.0f     , 0.0f     }; // D is Link offset along Z axis (mm)
+static const float THETA[NUMBER_OF_JOINTS-1]        = {0.0f        , 0.0f        ,-DEG2RAD(LINK3_ANGLE), 0.0f          , 0.0f  ,    M_PI/2}; // theta Angle around z axis (rad)
+static const float R_DH[NUMBER_OF_JOINTS-1]         = {0.0f        , LINK1_LENGTH, LINK2_DH_LENGTH     , 0.0f          , 0.0f     , 0.0f     }; // R/A Link length along X axis (mm)
+static const float ALPHA_DH[NUMBER_OF_JOINTS-1]     = {M_PI/2      ,  M_PI        , M_PI/2             ,-M_PI/2        , M_PI/2   , M_PI/2}; // Alpha Twist angle around X axis (rad)
+static const float DH_ZERO_OFFSET[NUMBER_OF_JOINTS-1]={0.0f        , 0.0f        , 0.0f                ,0.0f        , M_PI     , M_PI/2}; // Offset between DH ZERO(the x axis) and the motor calibrated zero (rad)
 
-// // DH arrays from MATLAB, fucking wrong lol
-// static const float THETA_OFFSET[NUMBER_OF_JOINTS-1] = {
-//     0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
-// };
-// static const float ALPHA_DH[NUMBER_OF_JOINTS-1] = {
-//     M_PI_2, M_PI, -M_PI_2, -M_PI_2, -M_PI_2, -M_PI_2
-// };
-// static const float D_DH[NUMBER_OF_JOINTS-1] = {
-//     160.30f, 15.25f, 1.75f, 92.65f, 68.25f, 47.25f  // mm
-// };
-// static const float R_DH[NUMBER_OF_JOINTS-1] = {
-//     1.25f, 160.50f, 152.61f, 68.25f, 47.25f, 25.00f // mm
-// };
-// // 152.61 is the shortest distance of frame 2 to 3. cosine rule, with lengthes (link3 and link3_angled), with angle being link 3 angle. 
+
+//GPT changes to try fix
+// ALPHA_DH[1] = -M_PI (should be 0.0f for a standard planar shoulder→elbow link)
+// DH_ZERO_OFFSET[3] = -M_PI/2 (should be 0.0f unless that joint is physically mounted 90° rotated)
+
+//saved, translation okay but pitch getting tied to yaw
+// static const float D_DH[NUMBER_OF_JOINTS-1]         = {LINK0_LENGTH, 0.0f        , 0.0f                , ENDEFF_FROM_J3, 0.0f     , 0.0f     }; // Link offset along Z axis (mm)
+// static const float THETA[NUMBER_OF_JOINTS-1]        = {0.0f        , 0.0f        ,-DEG2RAD(LINK3_ANGLE), 0.0f          , M_PI/2   , M_PI/2}; // Angle around z axis (rad)
+// static const float R_DH[NUMBER_OF_JOINTS-1]         = {0.0f        , LINK1_LENGTH, LINK2_DH_LENGTH     , 0.0f          , 0.0f     , 0.0f     }; // Link length along X axis (mm)
+// static const float ALPHA_DH[NUMBER_OF_JOINTS-1]     = {M_PI/2      , -M_PI        , M_PI/2             ,-M_PI/2        , M_PI/2   ,-M_PI/2}; // Twist angle around X axis (rad)
+// static const float DH_ZERO_OFFSET[NUMBER_OF_JOINTS-1]={0.0f        , 0.0f        , 0.0f                ,-M_PI/2         , -M_PI     , -M_PI/2}; // Offset between DH ZERO(the x axis) and the motor calibrated zero (rad)
+
 
 // Base to first joint transform
 inline static const float TG0[4][4] = {

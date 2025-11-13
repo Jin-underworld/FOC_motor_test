@@ -397,6 +397,17 @@ void printRawMotorAngles() {
   
 //   return raw_angle;
 // }
+float getMotorRawAngleNooffset(ExtendedBLDCMotor* motor) {
+if(!motor->sensor) return 0;
+
+// Get raw angle (0-2π) and apply direction and offset
+float raw_angle = motor->mech_angle_lpf(motor->sensor->getMechanicalAngle()) - motor->sensor_offset;
+//LPF updated here on permotor basis. MUST BE KEPT otherwise motors propagate
+
+// Normalize to 0-2π range
+return _normalizeAngle(raw_angle);
+}
+
 
 // use &motor, Get motor angle (0-2π) with direction and offset but without revolution counting
 float getMotorRawAngle(ExtendedBLDCMotor* motor) {

@@ -32,8 +32,8 @@ void initializeImpControl() {
     imp_state.last_unity_update = 0;
     imp_state.unity_connected = false;
     
-    Serial.println("Impedance Control Initialized");
-    Serial.println("Waiting for Unity data: [K_gain, B_gain]");
+    Serial2.println("Impedance Control Initialized");
+    Serial2.println("Waiting for Unity data: [K_gain, B_gain]");
 }
 
 float* loopImpControl() {
@@ -87,21 +87,21 @@ float* loopImpControl() {
 }
 
 void parseUnityData() {
-    // Non-blocking check for serial data
-    if (Serial.available() > 0) {
+    // Non-blocking check for Serial2 data
+    if (Serial2.available() > 0) {
         uint8_t state_code = 0x00; //used only for testing, comment out if Unity connected
         //uint8_t state_code = 0xFF; //uncomment if Unity connected
         
         #if UNITY_PROTOCOL_BYTE
             // Read single byte directly
-            state_code = Serial.read();
+            state_code = Serial2.read();
             // Clear any remaining newline characters
-            while (Serial.available() && (Serial.peek() == '\n' || Serial.peek() == '\r')) {
-                Serial.read();
+            while (Serial2.available() && (Serial2.peek() == '\n' || Serial2.peek() == '\r')) {
+                Serial2.read();
             }
         #else
             // Read as string (hex or decimal)
-            String input = Serial.readStringUntil('\n');
+            String input = Serial2.readStringUntil('\n');
             input.trim();
             
             // Try to parse as hex (0x01) or decimal (1)
@@ -120,13 +120,13 @@ void parseUnityData() {
             imp_state.last_unity_update = millis();
             imp_state.unity_connected = true;
             
-            Serial.print("State changed to: 0x");
-            Serial.print(state_code, HEX);
-            Serial.print(" - ");
-            Serial.println(IMP_LOOKUP_TABLE[state_code].description);
+            Serial2.print("State changed to: 0x");
+            Serial2.print(state_code, HEX);
+            Serial2.print(" - ");
+            Serial2.println(IMP_LOOKUP_TABLE[state_code].description);
         } else {
-            Serial.print("Invalid state code: 0x");
-            Serial.println(state_code, HEX);
+            Serial2.print("Invalid state code: 0x");
+            Serial2.println(state_code, HEX);
         }
     }
 }
@@ -235,30 +235,30 @@ void calculateJointTorques(const Jacobian &J) {
 }
 
 void printImpedanceState() {
-    Serial.println("=== Impedance Control State ===");
-    Serial.print("Unity: "); 
-    Serial.println(imp_state.unity_connected ? "CONNECTED" : "DISCONNECTED");
-    Serial.print("K: "); Serial.print(imp_state.k_gain, 3);
-    Serial.print(" B: "); Serial.println(imp_state.b_gain, 3);
+    Serial2.println("=== Impedance Control State ===");
+    Serial2.print("Unity: "); 
+    Serial2.println(imp_state.unity_connected ? "CONNECTED" : "DISCONNECTED");
+    Serial2.print("K: "); Serial2.print(imp_state.k_gain, 3);
+    Serial2.print(" B: "); Serial2.println(imp_state.b_gain, 3);
     
-    Serial.print("Pos error: [");
+    Serial2.print("Pos error: [");
     for (int i = 0; i < 3; i++) {
-        Serial.print(imp_state.desired_pos[i] - imp_state.current_pos[i], 4);
-        if (i < 2) Serial.print(", ");
+        Serial2.print(imp_state.desired_pos[i] - imp_state.current_pos[i], 4);
+        if (i < 2) Serial2.print(", ");
     }
-    Serial.println("]");
+    Serial2.println("]");
     
-    Serial.print("Force: [");
+    Serial2.print("Force: [");
     for (int i = 0; i < 3; i++) {
-        Serial.print(imp_state.cartesian_force[i], 4);
-        if (i < 2) Serial.print(", ");
+        Serial2.print(imp_state.cartesian_force[i], 4);
+        if (i < 2) Serial2.print(", ");
     }
-    Serial.println("]");
+    Serial2.println("]");
     
-    Serial.print("Torques: [");
+    Serial2.print("Torques: [");
     for (int i = 0; i < NUMBER_OF_JOINTS; i++) {
-        Serial.print(imp_state.joint_torques[i], 4);
-        if (i < NUMBER_OF_JOINTS - 1) Serial.print(", ");
+        Serial2.print(imp_state.joint_torques[i], 4);
+        if (i < NUMBER_OF_JOINTS - 1) Serial2.print(", ");
     }
-    Serial.println("]");
+    Serial2.println("]");
 }

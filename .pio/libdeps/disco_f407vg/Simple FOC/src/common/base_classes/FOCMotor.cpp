@@ -227,7 +227,7 @@ int FOCMotor::characteriseMotor(float voltage, float correction_factor=1.0f){
         settle_us = 10 * risetime_us;
         
 
-        // Serial.printf(">inductance:%f:%f|xy\n", current_electric_angle, Ltemp * 1000.0f); // <-- Plot an angle sweep
+        // Serial2.printf(">inductance:%f:%f|xy\n", current_electric_angle, Ltemp * 1000.0f); // <-- Plot an angle sweep
 
 
         /**

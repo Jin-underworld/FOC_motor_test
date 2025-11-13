@@ -34,6 +34,9 @@ public:
 
     // Flag to enable mechanical-only mode (0-2π range, no revolution tracking)
     bool use_mechanical_only;
+
+    // //Override loopFOC to use mechanical 0..2π angle (getMotorRawAngle)
+    // void loopFOC() override;
     
     // Override move function to support both modes
     void move(float new_target = NOT_SET) override;

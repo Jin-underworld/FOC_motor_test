@@ -26,6 +26,60 @@ float MultiplexedMagneticSensorI2C::getSensorAngle() {
     return MagneticSensorI2C::getSensorAngle();
 }
 
+float MultiplexedMagneticSensorI2C::getAngle() {
+    multiplexer->selectPort(port);
+    float raw = MagneticSensorI2C::getSensorAngle(); // 0..2π
+
+    uint32_t now = micros();
+    if (prev_ts == 0 || isnan(prev_raw_mech)) {
+        prev_ts = now;
+        prev_raw_mech = raw;
+        filt_unwrapped = raw;
+        last_unwrapped = filt_unwrapped;
+        vel_prev_ts = now;
+        return filt_unwrapped;
+    }
+
+    float dt = (now == prev_ts) ? 1e-4f : (now - prev_ts) * 1e-6f;
+    prev_ts = now;
+
+    // Shortest diff (-π,π] across wrap
+    float da = angleDiff(raw, prev_raw_mech);
+    prev_raw_mech = raw;
+
+    // 1) Reject impossible big jumps (>0.5 rotation)
+    if (fabsf(da) > (_2PI * 0.5f)) {
+        da = 0.0f;
+    }
+
+    // 2) Rate-cap the remaining delta
+    float max_da = max_rate_rad_s * dt;
+    if (fabsf(da) > max_da) da = copysignf(max_da, da);
+
+    // Integrate in UNWRAPPED domain, then LPF in UNWRAPPED domain
+    float unwrapped = filt_unwrapped + da;
+    filt_unwrapped = angle_lpf(unwrapped);
+
+    return filt_unwrapped; // continuous angle for FOC commutation
+}
+
+float MultiplexedMagneticSensorI2C::getVelocity() {
+    uint32_t now = micros();
+    float Ts = (now == vel_prev_ts) ? 1e-4f : (now - vel_prev_ts) * 1e-6f;
+    if (Ts <= 0.0f) Ts = 1e-4f;
+    vel_prev_ts = now;
+
+    float a = getAngle(); // filtered continuous
+    float v = (a - last_unwrapped) / Ts;
+
+    // Clip to reasonable range
+    if (v >  max_rate_rad_s) v =  max_rate_rad_s;
+    if (v < -max_rate_rad_s) v = -max_rate_rad_s;
+
+    last_unwrapped = a;
+    return v;
+}
+
 // Override update method
 void MultiplexedMagneticSensorI2C::update() {
     multiplexer->selectPort(port);
@@ -43,7 +97,7 @@ void initializeI2CMultiplexer() {
     
     multiplexer_tran.begin();
     //multiplexer_wrist.begin();
-    Serial.println("I2C Multiplexer initialized");
+    Serial2.println("I2C Multiplexer initialized");
 }
 
 // Initialize all sensors
@@ -57,7 +111,20 @@ void initializeSensors() {
     sensor5.init(&Wire2);
     sensor6.init(&Wire2);
 
-    Serial.println("All sensors initialized");
+    // Common tuning (per sensor)
+    const float maxRate = 150.0f;  // rad/s (raise if you need more speed)
+    const float Tf      = 0.002f;  // s
+
+    sensor0.setMaxAngleRate(maxRate); sensor0.setAngleFilterTf(Tf);
+    sensor1.setMaxAngleRate(maxRate); sensor1.setAngleFilterTf(Tf);
+    sensor2.setMaxAngleRate(maxRate); sensor2.setAngleFilterTf(Tf);
+    sensor3.setMaxAngleRate(maxRate); sensor3.setAngleFilterTf(Tf);
+    sensor4.setMaxAngleRate(maxRate); sensor4.setAngleFilterTf(Tf);
+    sensor5.setMaxAngleRate(maxRate); sensor5.setAngleFilterTf(Tf);
+    sensor6.setMaxAngleRate(maxRate); sensor6.setAngleFilterTf(Tf);
+
+
+    Serial2.println("All sensors initialized");
 }
 
 // Update all sensors
@@ -96,21 +163,21 @@ void initializeSensors() {
 void printAllEncoders() {
     updateAllEncoders();
     
-    Serial.print("[");
-    Serial.print(sensor0.getAngle(), 3);
-    Serial.print(",");
-    Serial.print(sensor1.getAngle(), 3);
-    Serial.print(",");
-    Serial.print(sensor2.getAngle(), 3);
-    Serial.print(",");
-    Serial.print(sensor3.getAngle(), 3);
-    Serial.print(",");
-    Serial.print(sensor4.getAngle(), 3);
-    Serial.print(",");
-    Serial.print(sensor5.getAngle(), 3);
-    Serial.print(",");
-    Serial.print(sensor6.getAngle(), 3);
-    Serial.println("]");
+    Serial2.print("[");
+    Serial2.print(sensor0.getAngle(), 3);
+    Serial2.print(",");
+    Serial2.print(sensor1.getAngle(), 3);
+    Serial2.print(",");
+    Serial2.print(sensor2.getAngle(), 3);
+    Serial2.print(",");
+    Serial2.print(sensor3.getAngle(), 3);
+    Serial2.print(",");
+    Serial2.print(sensor4.getAngle(), 3);
+    Serial2.print(",");
+    Serial2.print(sensor5.getAngle(), 3);
+    Serial2.print(",");
+    Serial2.print(sensor6.getAngle(), 3);
+    Serial2.println("]");
 }
 
 void printAllMechEncoders() {
@@ -134,47 +201,60 @@ void printAllMechEncoders() {
 }
 
 
-LowPassFilter LPFangle0 {0.1};
+LowPassFilter LPFangle0 {0.01};
+LowPassFilter LPFangle1 {0.01};
+LowPassFilter LPFangle2 {0.01};
+LowPassFilter LPFangle3 {0.01};
+LowPassFilter LPFangle4 {0.01};
+LowPassFilter LPFangle5 {0.01};
+LowPassFilter LPFangle6 {0.01};
 
 //for DH table, gets all sensor angles in RAD with zero offset without needing to link to a motor
-float getAllMechAngles(int sensornumber){
-
+float getAllMechAngles(int sensornumber) {
+    float angle_raw = 0.0f;
     float angle_rad = 0.0f;
+
     switch (sensornumber) {
-        case 0: 
+        case 0:
             sensor0.update();
-            // Get raw angle (0-2π) and apply direction and offset
-            angle_rad = JOINT0_SENSOR_DIRECTION * sensor0.getMechanicalAngle() - JOINT0_ZERO_CALIBRATED_ANGLE;
+            angle_raw = JOINT0_SENSOR_DIRECTION * sensor0.getMechanicalAngle() - JOINT0_ZERO_CALIBRATED_ANGLE;
+            angle_rad = LPFangle0(angle_raw);
             break;
-        case 1: 
+        case 1:
             sensor1.update();
-            angle_rad = JOINT1_SENSOR_DIRECTION * sensor1.getMechanicalAngle() - JOINT1_ZERO_CALIBRATED_ANGLE;
+            angle_raw = JOINT1_SENSOR_DIRECTION * sensor1.getMechanicalAngle() - JOINT1_ZERO_CALIBRATED_ANGLE;
+            angle_rad = LPFangle1(angle_raw);
             break;
-        case 2: 
+        case 2:
             sensor2.update();
-            angle_rad = JOINT2_SENSOR_DIRECTION * sensor2.getMechanicalAngle() - JOINT2_ZERO_CALIBRATED_ANGLE;
+            angle_raw = JOINT2_SENSOR_DIRECTION * sensor2.getMechanicalAngle() - JOINT2_ZERO_CALIBRATED_ANGLE;
+            angle_rad = LPFangle2(angle_raw);
             break;
         case 3:
             sensor3.update();
-            angle_rad = JOINT3_SENSOR_DIRECTION * sensor3.getMechanicalAngle() - JOINT3_ZERO_CALIBRATED_ANGLE;
+            angle_raw = JOINT3_SENSOR_DIRECTION * sensor3.getMechanicalAngle() - JOINT3_ZERO_CALIBRATED_ANGLE;
+            angle_rad = LPFangle3(angle_raw);
             break;
         case 4:
             sensor4.update();
-            angle_rad = JOINT4_SENSOR_DIRECTION * sensor4.getMechanicalAngle() - JOINT4_ZERO_CALIBRATED_ANGLE;
+            angle_raw = JOINT4_SENSOR_DIRECTION * sensor4.getMechanicalAngle() - JOINT4_ZERO_CALIBRATED_ANGLE;
+            angle_rad = LPFangle4(angle_raw);
             break;
         case 5:
             sensor5.update();
-            angle_rad = JOINT5_SENSOR_DIRECTION * sensor5.getMechanicalAngle() - JOINT5_ZERO_CALIBRATED_ANGLE;
+            angle_raw = JOINT5_SENSOR_DIRECTION * sensor5.getMechanicalAngle() - JOINT5_ZERO_CALIBRATED_ANGLE;
+            angle_rad = LPFangle5(angle_raw);
             break;
         case 6:
             sensor6.update();
-            angle_rad = JOINT0_SENSOR_DIRECTION * sensor6.getMechanicalAngle() - JOINT6_ZERO_CALIBRATED_ANGLE;
+            // Fixed direction macro to JOINT6_SENSOR_DIRECTION (was JOINT0_SENSOR_DIRECTION)
+            angle_raw = JOINT6_SENSOR_DIRECTION * sensor6.getMechanicalAngle() - JOINT6_ZERO_CALIBRATED_ANGLE;
+            angle_rad = LPFangle6(angle_raw);
             break;
-        default: 
+        default:
             angle_rad = 0.0f;
-            // Serial2.println("Invalid joint number!");
+            break;
     }
-
     return _normalizeAngle(angle_rad);
 }
 
@@ -212,7 +292,7 @@ bool recoverI2CBus() {
     digitalWrite(PIN_SCL, HIGH);
     
     if (!scl_ok) {
-        //Serial2.println("I2C: SCL stuck low - hardware issue");
+        //Serial22.println("I2C: SCL stuck low - hardware issue");
         // Continue anyway - might still recover
     }
     
@@ -241,12 +321,12 @@ bool recoverI2CBus() {
     Wire2.begin();
     Wire2.setClock(50000); // Keep your current speed
     
-    //Serial2.println("I2C bus recovery attempted");
+    //Serial22.println("I2C bus recovery attempted");
     return true;
 }
 
 void restartI2CSystem() {
-    //Serial2.println("Restarting I2C system...");
+    //Serial22.println("Restarting I2C system...");
     
     // Recover the bus first
     recoverI2CBus();
@@ -262,9 +342,9 @@ void restartI2CSystem() {
     }
     
     if (mux_ok) {
-        //Serial2.println("Multiplexer communication OK");
+        //Serial22.println("Multiplexer communication OK");
     } else {
-        //Serial2.println("Multiplexer communication failed");
+        //Serial22.println("Multiplexer communication failed");
     }
     
     // Reinitialize sensors that are active
@@ -276,7 +356,7 @@ void restartI2CSystem() {
     sensor5.init(&Wire2);
     sensor6.init(&Wire2);
     
-    //Serial2.println("I2C system restart complete");
+    //Serial22.println("I2C system restart complete");
 }
 
 // Add timeout-protected sensor update
@@ -289,7 +369,7 @@ bool safeUpdateSensor(MultiplexedMagneticSensorI2C& sensor, uint8_t port, uint32
     
     // Check if update took too long (indicates I2C timeout/hang)
     if (millis() - start > timeout_ms) {
-        //Serial2.print("I2C timeout on port "); Serial2.println(port);
+        //Serial22.print("I2C timeout on port "); Serial22.println(port);
         return false;
     }
     return true;
@@ -311,7 +391,7 @@ void updateAllEncoders() {
     if (!success) {
         error_count++;
         if (error_count >= 3) {  // After 3 consecutive errors
-            //Serial2.println("Multiple I2C errors - recovering bus");
+            //Serial22.println("Multiple I2C errors - recovering bus");
             restartI2CSystem();
             error_count = 0;
         }

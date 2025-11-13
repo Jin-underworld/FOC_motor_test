@@ -66,49 +66,57 @@ extern "C" void __attribute__((weak)) HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   }
 }
 
+
 static char inbuf[64];
 static uint8_t inlen = 0;
-volatile bool serial_command_flag = false;  // Flag that gets set by 0x01
+static volatile bool serial_command_flag = false;
 
+static void blinkBlueTwice() {
+  digitalWrite(LED_BLUE, HIGH); delay(50);
+  digitalWrite(LED_BLUE, LOW);  delay(50);
+  digitalWrite(LED_BLUE, HIGH); delay(50);
+  digitalWrite(LED_BLUE, LOW);
+}
 
-void handleIncoming() {
-  while (Serial2.available()) {
-    char c = Serial2.read();
-    if (c == '\n') {
-      inbuf[inlen] = '\0';
-      if (inlen && inbuf[inlen - 1] == '\r') 
-        inbuf[inlen - 1] = '\0';
+static void processLine() {
+  // trim trailing spaces/tabs
+  while (inlen && (inbuf[inlen-1] == ' ' || inbuf[inlen-1] == '\t')) inlen--;
+  inbuf[inlen] = '\0';
 
-      // Check for 0x01 command
-      if (strcmp(inbuf, "0x01") == 0) {
-        serial_command_flag = true;  // Set flag to true
-        Serial2.println("Command received: Flag set to TRUE");
-        digitalWrite(LED_BLUE, HIGH);
-        delay(50);
-        digitalWrite(LED_BLUE, LOW);
-        delay(50);
-        digitalWrite(LED_BLUE, HIGH);
-        delay(50);
-        digitalWrite(LED_BLUE, LOW);
-      }
-      // Check for reset/clear command
-      else if (strcmp(inbuf, "0x00") == 0 || strcmp(inbuf, "reset") == 0) {
-        serial_command_flag = false;  // Set flag to false
-        Serial2.println("Command received: Flag set to FALSE");
-      }
-      // Echo unknown commands
-      else if (inlen > 0) {
-        Serial2.print("Unknown command: ");
-        Serial2.println(inbuf);
-      }
+  if (inlen == 0) return; // ignore empty
 
-      inlen = 0;  // Reset buffer
-    }
-    else if (c != '\r' && inlen + 1 < sizeof(inbuf)) {
+  if (strcmp(inbuf, "0x01") == 0) {
+    serial_command_flag = true;
+    blinkBlueTwice();
+    Serial2.println("Command received: Flag set to TRUE");
+
+  } else if (strcmp(inbuf, "0x00") == 0 || strcmp(inbuf, "reset") == 0) {
+    serial_command_flag = false;
+    Serial2.println("Command received: Flag set to FALSE");
+
+  } else {
+    Serial2.print("Unknown command: "); Serial2.println(inbuf);
+
+  }
+  inlen = 0; // reset buffer
+}
+
+static void readFrom(Stream& s) {
+  while (s.available()) {
+    char c = s.read();
+    if (c == '\n' || c == '\r') {
+      if (inlen) processLine(); // handle CR, LF, or CRLF
+      else inlen = 0;           // eat consecutive line endings
+    } else if (inlen + 1 < sizeof(inbuf)) {
       inbuf[inlen++] = c;
+    } else {
+      // overflow: reset buffer
+      inlen = 0;
     }
   }
 }
+
+
 
 void setup() {
   
@@ -130,8 +138,8 @@ void setup() {
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
-
-Serial2.setTx(SERIAL2_TX);  // USART2_TX on PD5
+  pinMode(LED_BLUE, OUTPUT);
+  Serial2.setTx(SERIAL2_TX);  // USART2_TX on PD5
   Serial2.setRx(SERIAL2_RX);  // USART2_RX on PD6
   Serial2.begin(BAUD_RATE);
   delay(100);
@@ -208,8 +216,8 @@ Serial2.setTx(SERIAL2_TX);  // USART2_TX on PD5
   GB6010motor.zero_electric_angle =JOINT1_ZE_ANGLE;
   GB6010motor.sensor_direction=    JOINT1_SENSOR_DIRECTION;
   GB6010motor.sensor_offset=       JOINT1_ZERO_CALIBRATED_ANGLE;
-  GB6010motor.current_limit= 1.8f;
-  GB6010motor.voltage_limit = 13.0f;
+  GB6010motor.current_limit= 2.1f;
+  GB6010motor.voltage_limit = 17.0f;
   GB6010motor.PID_current_q.P = 1.2f;
   GB6010motor.PID_current_q.I = 6.2f;
   GB6010motor.PID_current_q.D = 0.0f;
@@ -353,111 +361,187 @@ Serial2.setTx(SERIAL2_TX);  // USART2_TX on PD5
 
 
 
-float K_spring = 0.71f; //spring Constant (Nm/rad)
+float K_spring = 0.68f; //spring Constant (Nm/rad)
 float D_damper = 0.19f; //Damping constant (Nm/(rad/s))
-float K_spring_2 = 0.3f; //spring Constant (Nm/rad)
-float D_damper_2 = 0.16f; //Damping constant (Nm/(rad/s))
-float K_spring_3 = 0.001f; //spring Constant (Nm/rad)
-float D_damper_3 = 0.003f; //Damping constant (Nm/(rad/s))
+float K_spring_2 = 0.12f; //spring Constant (Nm/rad)
+float D_damper_2 = 0.05f; //Damping constant (Nm/(rad/s))
+float K_spring_3 = 0.00f; //spring Constant (Nm/rad) 0.001 if fail
+float D_damper_3 = 0.035f; //Damping constant (Nm/(rad/s)) 0.003 if fail
 float last_z = 0.0f;
 
-LowPassFilter theta_1_filter = LowPassFilter(0.1f);
-LowPassFilter dtheta_2_filter = LowPassFilter(0.2f);  // 
-LowPassFilter theta_2_filter = LowPassFilter(0.2f);  // 
-LowPassFilter dtheta_3_filter = LowPassFilter(0.04f);  // 
+LowPassFilter theta_1_filter = LowPassFilter(0.05f);
+LowPassFilter dtheta_2_filter = LowPassFilter(0.014f);  // 
+LowPassFilter theta_2_filter = LowPassFilter(0.005f);  // 
+LowPassFilter dtheta_3_filter = LowPassFilter(0.06f);  // 
 LowPassFilter theta_3_filter = LowPassFilter(0.04f);  // 
 
+//motor 1 helpers for haptic feedback
+//static bool     contact_1     = false;
+static float    tau_skin_1    = 0.0f;        // Nm ramped 0→tau_skin_max
+static uint32_t t_skin_prev_1 = 0;
 
-static const float tau_max_3 = 0.8f;     // max virtual torque [Nm]
-static const float tau_slew_3 = 1.5f;     // Nm/s limit on torque change
-static const float tau_fric_3 = 0.01f;    // Coulomb friction compensation [Nm]
+const float angle_enter_1 = 0.65f;           // enter threshold [rad]
+const float angle_exit_1  = 0.67f;           // exit threshold [rad] (hysteresis)
+const float tau_skin_max  = 0.25f;           // target “pop-in” Nm
+const float attack_rate   = 80.0f;           // Nm/s (fast rise)
+const float release_rate  = 15.0f;           // Nm/s (slower fall)
+const float depth_gain    = 0.01f;    // Nm per mm (tune)
+const float ff_tau_limit  = 1.0f;            // absolute clamp Nm
+
+//motor 2 helper for smoother x translation
+const float e_db        = 0.15f;            // deadband half-width [rad]
+const float e_smooth_2  = 0.60f;            // linear ramp width [rad] (make this as you like)
+const float w_cap_2     = 20.0f;            // velocity cap [rad/s]
+const float tau_max_2   = 0.7f;             // torque clamp [Nm]
+const float theta_ref_2 = 2.63f;
+
+
+//motor 3 helper for damper to prevent slop
+static float tau_prev_3 = 0.0f;
+static uint32_t t_prev_3 = 0;
+const float tau_slew_3 = 0.5f; // Nm per second
+
+
 
 
 static uint32_t loop_timeout = 0;
 
 void loop() {
 
-  handleIncoming(); //SERIAL input from unity
+  readFrom(Serial2);
 
-  if (serial_command_flag) {
-    // Do something when flag is true
-    Serial2.println("Flag is TRUE - executing special behavior");
-    // Your code here...
-  }
+  // if (serial_command_flag) {
+  //   // Do something when flag is true
+  //   Serial2.println("Flag is TRUE - executing special behavior");
+  //   // Your code here...
+  // }
   
 
   loop_timeout = micros() - loop_timeout;
   if (loop_timeout>= 2000){
     restartI2CSystem();
   }
-  //Target angle constrains
-//   float target_Angle_0 = constrain(target_Angle_0,JOINT0_LOWER_LIMIT,JOINT0_UPPER_LIMIT);
-//   float target_Angle_1 = constrain(target_Angle_1,JOINT1_LOWER_LIMIT,JOINT1_UPPER_LIMIT);
-//   float target_Angle_2 = constrain(target_Angle_2,JOINT2_LOWER_LIMIT,JOINT2_UPPER_LIMIT);
-//   float target_Angle_3 = constrain(target_Angle_3,JOINT3_LOWER_LIMIT,JOINT3_UPPER_LIMIT);
+
   
-  
-//   ButtonChecker();
-//   if(buttonPressed&&useFakeImpedance){
-//     target_Angle_0 = GB6010motor.shaftAngle();
-//     target_Angle_1 = GB6010motor.shaftAngle();
-//     target_Angle_2 = GB4315motor.shaftAngle();
-
-//     //maybe add part to soften up all the controllers, then add else statement to flop the controller
-//     //to harder settings under normal situation, add single counter so that else statement doesnt always slow down loop
-//   }
-
-//   //standard position control
-//   digitalWrite(LED_BUILTIN, HIGH);
-  float force_feedback = 0.0f;
-
   // Joint_motor[0]->loopFOC();
   // Joint_motor[0]->move(target_Angle_0);
 
-
-  //pseudo force feedback
-  if (serial_command_flag){
-    float current_depth = last_z - forwardKinematics().z;
-    force_feedback = current_depth * 0.3f/5.0f;//current over total allowavble depth
-  }
-  else{
-    last_z = forwardKinematics().z;
-  }
-
-  //really fake force feedback, take away once serial working
-  if (getMotorRawAngle(&GB6010motor)<=0.65f){
-    force_feedback = 0.7f; //(0.65f-getMotorRawAngle(&GB6010motor))+0.1f;
-  }
-  else{
-    force_feedback = 0.0f;
-  }
+  
+  Pose6D instant_pose = forwardKinematics();
 
 
-  //Impedance control Master
-  float dtheta =GB6010motor.shaftVelocity();
-  float theta = theta_1_filter(getMotorRawAngle(&GB6010motor));
 
-  float torque_cmd = 
-      -K_spring * (theta-M_PI_2)
-      -D_damper * dtheta;
+  float angle1 = getMotorRawAngle(&GB6010motor);
 
-  torque_cmd = torque_cmd/0.61f;
+  // Hysteresis contact detection
+  // if (!contact_1 && angle1 <= angle_enter_1) contact_1 = true;
+  // else if (contact_1 && angle1 > angle_exit_1) contact_1 = false;
+
+  // Update surface reference only when NOT in contact
+  if (!serial_command_flag) last_z = instant_pose.z;
+
+  // Depth (positive penetration only)
+  float current_depth = serial_command_flag ? (last_z - instant_pose.z) : 0.0f;
+  if (current_depth < 0.0f) current_depth = 0.0f;
+
+  // Ramp tau_skin_1 toward target
+  uint32_t now_skin = micros();
+  float dt_skin = (t_skin_prev_1 == 0) ? 0.001f : (now_skin - t_skin_prev_1) * 1e-6f;
+  t_skin_prev_1 = now_skin;
+
+  float tau_target = serial_command_flag ? tau_skin_max : 0.0f;
+  float rate = (tau_target > tau_skin_1) ? attack_rate : release_rate;
+  float max_delta1 = rate * dt_skin;
+  float delta1 = tau_target - tau_skin_1;
+  if (delta1 >  max_delta1) delta1 =  max_delta1;
+  if (delta1 < -max_delta1) delta1 = -max_delta1;
+  tau_skin_1 += delta1;
+
+  // Combined force feedback torque (Nm)
+  float force_feedback = tau_skin_1 + current_depth * depth_gain;
+  force_feedback = constrain(force_feedback, -ff_tau_limit, ff_tau_limit);
+
+  // --- Impedance control 6010, haptics also ---
+  float dtheta = GB6010motor.shaftVelocity();
+  float theta  = theta_1_filter(getMotorRawAngle(&GB6010motor));
+
+  float torque_cmd =
+      -K_spring * (theta - M_PI_2)
+      -D_damper * dtheta
+      + force_feedback;              // add haptic term
+
+  torque_cmd /= 0.61f;               // scaling to motor command
 
   GB6010motor.loopFOC();
   GB6010motor.move(torque_cmd);//positive brings the joint 1 up to help player
 
 
-  float dtheta_2 =dtheta_2_filter(GB4315motor.shaftVelocity());
-  float theta_2 = theta_2_filter(getMotorRawAngle(&GB4315motor));
+  /////////
+  ////4315 MOTOR START
+  //////////
 
-  float torque_cmd_4315 = 
-      -K_spring_2 * -(2.1f - theta_2)
-      -D_damper_2 * dtheta_2;
 
-  torque_cmd_4315 = torque_cmd_4315/0.47f;
 
-  Joint_motor[2]->loopFOC();
-  Joint_motor[2]->move(torque_cmd_4315);//negative brings the joint 2 in to help player
+  float dtheta_2 = dtheta_2_filter(GB4315motor.shaftVelocity());
+  float theta_2  = theta_2_filter(getMotorRawAngle(&GB4315motor));
+
+  float e2 = -theta_ref_2 + theta_2;          // error
+
+  // Smooth the 4315 impedance near 2.0 rad and slew-limit torque
+  // Zone shaping to suppress the spring near the problematic sensor wrap
+  const float zone_c_2      = 2.0f;   // center [rad]
+  const float zone_half_2   = 0.06f;  // flat dead-zone half-width [rad]
+  const float zone_ramp_2   = 0.20f;  // ramp width to full gain [rad]
+  const float extra_damp_2  = 1.5f;   // extra damping multiplier inside zone
+
+  float dx2 = theta_2 - zone_c_2;
+  float a2  = fabsf(dx2) - zone_half_2;
+
+  // kK in [0..1] scales spring; kD >=1 scales damping in the dead/ramp zone
+  float kK = 1.0f;
+  float kD = 1.0f;
+  if (a2 <= 0.0f) {
+    kK = 0.0f;                 // kill spring at the center band
+    kD = 1.0f + extra_damp_2;  // boost damping to ride through the wrap
+  } else if (a2 < zone_ramp_2) {
+    float ramp = a2 / zone_ramp_2;   // 0→1
+    kK = ramp;                       // spring ramps up
+    kD = 1.0f + (1.0f - ramp) * extra_damp_2; // damping ramps down
+  }
+
+  // Impedance with zone-shaped gains
+  float tau_spring_2 = -K_spring_2 * kK * e2;
+  float tau_damp_2   = -D_damper_2 * kD * dtheta_2;
+  float tau_cmd_2    = tau_spring_2 + tau_damp_2;
+
+  // Clamp torque
+  tau_cmd_2 = constrain(tau_cmd_2, -tau_max_2, tau_max_2);
+
+  // Slew-limit torque to avoid sudden steps (Nm/s)
+  static float    tau_prev_2 = 0.0f;
+  static uint32_t t_prev_2   = 0;
+  const float tau_slew_rate_2 = 1.5f; // Nm per second (tune)
+
+  uint32_t now2 = micros();
+  float dt2 = (t_prev_2 == 0) ? 0.001f : (now2 - t_prev_2) * 1e-6f;
+  t_prev_2 = now2;
+
+  float max_delta_tau = tau_slew_rate_2 * dt2;
+  float d_tau = tau_cmd_2 - tau_prev_2;
+  if (d_tau >  max_delta_tau) d_tau =  max_delta_tau;
+  if (d_tau < -max_delta_tau) d_tau = -max_delta_tau;
+  float tau_slewed_2 = tau_prev_2 + d_tau;
+  tau_prev_2 = tau_slewed_2;
+
+  // Scale to motor command (torque constant equivalent 0.47)
+  float torque_cmd_4315 = tau_slewed_2 / 0.47f;
+
+  GB4315motor.loopFOC();
+  GB4315motor.move(torque_cmd_4315); // negative brings joint 2 in to help player
+
+  ///////////
+  ////3510////
+  ///////////
 
   float dtheta_3 = dtheta_3_filter(GB3510_3_motor.shaftVelocity());
   float theta_3  = theta_3_filter(getMotorRawAngle(&GB3510_3_motor));
@@ -469,8 +553,22 @@ void loop() {
               - D_damper_3 * dtheta_3;
 
 
-  torque_cmd_3510 = torque_cmd_3510/0.2f;
- 
+  
+  float tau_raw_3 = torque_cmd_3510;
+
+  //testing
+  uint32_t now = micros();
+  float dt = (t_prev_3 == 0) ? 0.0005f : (now - t_prev_3) * 1e-6f; // fallback if first run
+  t_prev_3 = now;
+
+  float max_delta = tau_slew_3 * dt;
+  float delta = tau_raw_3 - tau_prev_3;
+  if (delta >  max_delta) delta =  max_delta;
+  if (delta < -max_delta) delta = -max_delta;
+  float tau_slewed = tau_prev_3 + delta;
+  tau_prev_3 = tau_slewed;
+
+  torque_cmd_3510 = tau_slewed/0.2f;
 
   Joint_motor[3]->loopFOC();
   Joint_motor[3]->move(torque_cmd_3510);
@@ -514,41 +612,25 @@ void loop() {
 
   if(micros() - last_debug > 10000) {  // Print every 100 miilisecond
     //prints pos endeffector in Joint_motor space for Unity controller(rate limited)
-    printPose();
+    printPose(instant_pose);
     //printAllEncoders();
     //printAllMechAngles();
     //printAllJointAngles();
-    
-    //Serial2.print("Actual Angle: \n");
-    //Serial2.println(GB6025motor.shaftAngle(),3);
-    //Serial2.println(GB6025motor.shaftVelocity(),3);
-    // Serial2.println(GB6010motor.shaftAngle(),3);
-    // Serial2.println(GB6010motor.shaftVelocity(),3);
-    // Serial2.println(GB4315motor.shaftAngle(),3);
-    // Serial2.println(GB4315motor.shaftVelocity(),3);
-    //Serial2.println(GB3510_3_motor.shaftAngle(),3);
-    //Serial2.println(GB3510_3_motor.shaftVelocity(),3);
     //additional print
     //Jacobian J = calculateJacobian();
     //printJacobian(J);
     //checkJacobian(J);
-    // Serial2.print("\n");
-    //Serial2.print("Current Targets: \n");
-    //Serial2.print("J0:");Serial2.println(target_Angle_0,3);
-    //Serial2.print("J1:");Serial2.println(target_Angle_1,3);
-    //Serial2.print("J2:");Serial2.println(target_Angle_2,3);
-    //Serial2.print("J3:");Serial2.println(target_Angle_3,3);
     last_debug = micros();
   }
 
-  // if (millis() - last_debug > 20) {
+  // if (millis() - last_debug > 2) {
   //   //Serial2.print("Target torque: "); Serial2.print(torque_cmd,3);
-  //   Serial2.print(", Motor Angle: "); Serial2.print(getMotorRawAngle(Joint_motor[3]),3);
-  //   //Serial2.print(", J5 angle: "); Serial2.print(getAllMechAngles(5),3);
+  //   Serial2.print(", Motor Angle: "); Serial2.print(getMotorRawAngle(Joint_motor[2]),3);
+  //   Serial2.print(", Variable: "); Serial2.print(e2,3);
   //   //Serial2.print(", Raw Sensor Angle: "); Serial2.print(sensor1.getAngle(),3);
   //   //Serial2.print(", Velocity: "); Serial2.print(Joint_motor[1]->shaftVelocity(),3);
-  //   Serial2.print(", Motor Voltage Uq: "); Serial2.print(Joint_motor[3]->voltage.q,3);
-  //   Serial2.print(", Motor Current Iq: "); Serial2.print(Joint_motor[3]->current.q,3);
+  //   Serial2.print(", Motor Voltage Uq: "); Serial2.print(Joint_motor[2]->voltage.q,3);
+  //   Serial2.print(", Motor Current Iq: "); Serial2.print(Joint_motor[2]->current.q,3);
   //   //Serial.print(", Current Command: "); Serial.print(current_cmd,3);
   //   Serial2.println();
   //   last_debug = millis();

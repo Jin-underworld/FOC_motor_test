@@ -173,26 +173,26 @@ void printJacobian(void) {
 // Print Jacobian matrix
 void printJacobian(const Jacobian &jacobian) {
     // Linear part (first 3 rows)
-    Serial.print("J_lin: [");
+    Serial2.print("J_lin: [");
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
-            Serial.print(jacobian.data[i][j], 2);
-            if (j < 2) Serial.print(", ");
+            Serial2.print(jacobian.data[i][j], 2);
+            if (j < 2) Serial2.print(", ");
         }
-        if (i < 2) Serial.println(" | ");
+        if (i < 2) Serial2.println(" | ");
     }
-    Serial.println("]");
+    Serial2.println("]");
     
     // Angular part (last 3 rows)
-    // Serial.print("J_ang: [");
+    // Serial2.print("J_ang: [");
     // for (int i = 3; i < 6; i++) {
     //     for (int j = 0; j < 3; j++) {
-    //         Serial.print(jacobian.data[i][j], 2);
-    //         if (j < 2) Serial.print(", ");
+    //         Serial2.print(jacobian.data[i][j], 2);
+    //         if (j < 2) Serial2.print(", ");
     //     }
-    //     if (i < 5) Serial.print(" | ");
+    //     if (i < 5) Serial2.print(" | ");
     // }
-    // Serial.println("]");
+    // Serial2.println("]");
 }
 
 
@@ -236,7 +236,7 @@ void checkJacobian(void){
 }
 
 void checkJacobian(const Jacobian &J) {
-    Serial.println("=== JACOBIAN VALIDATION ===");
+    Serial2.println("=== JACOBIAN VALIDATION ===");
     
     
     // Get current joint angles for reference
@@ -245,13 +245,13 @@ void checkJacobian(const Jacobian &J) {
         theta[i] = getSensorAngleKinematics(i); //in rad
     }
     
-    Serial.print("Current joint angles: [");
-    Serial.print(theta[0], 3); Serial.print(", ");
-    Serial.print(theta[1], 3); Serial.print(", ");
-    Serial.print(theta[2], 3); Serial.println("]");
+    Serial2.print("Current joint angles: [");
+    Serial2.print(theta[0], 3); Serial2.print(", ");
+    Serial2.print(theta[1], 3); Serial2.print(", ");
+    Serial2.print(theta[2], 3); Serial2.println("]");
     
     // === 1. ORTHOGONALITY TEST ===
-    Serial.println("\n1. Orthogonality Test: z · J_v ≈ 0");
+    Serial2.println("\n1. Orthogonality Test: z · J_v ≈ 0");
     
     // Extract z-axes (same calculation as in calculateJacobian)
     float T01[4][4], T12[4][4], T23[4][4], T02[4][4], T03[4][4], TGE[4][4];
@@ -287,15 +287,15 @@ void checkJacobian(const Jacobian &J) {
     float dot2 = dotProduct(z1, j1_linear);
     float dot3 = dotProduct(z2, j2_linear);
     
-    Serial.print("z0 · j1_linear = "); Serial.print(dot1, 6);
-    Serial.println((abs(dot1) < 0.001) ? " ✓ PASS" : " ✗ FAIL");
-    Serial.print("z1 · j2_linear = "); Serial.print(dot2, 6);
-    Serial.println((abs(dot2) < 0.001) ? " ✓ PASS" : " ✗ FAIL");
-    Serial.print("z2 · j3_linear = "); Serial.print(dot3, 6);
-    Serial.println((abs(dot3) < 0.001) ? " ✓ PASS" : " ✗ FAIL");
+    Serial2.print("z0 · j1_linear = "); Serial2.print(dot1, 6);
+    Serial2.println((abs(dot1) < 0.001) ? " ✓ PASS" : " ✗ FAIL");
+    Serial2.print("z1 · j2_linear = "); Serial2.print(dot2, 6);
+    Serial2.println((abs(dot2) < 0.001) ? " ✓ PASS" : " ✗ FAIL");
+    Serial2.print("z2 · j3_linear = "); Serial2.print(dot3, 6);
+    Serial2.println((abs(dot3) < 0.001) ? " ✓ PASS" : " ✗ FAIL");
     
     // === 2. FINITE DIFFERENCE VALIDATION ===
-    Serial.println("\n2. Finite-Difference Validation");
+    Serial2.println("\n2. Finite-Difference Validation");
 
     // small perturbation in radians
     const float delta = 0.001f;   // ~0.057 degrees
@@ -322,7 +322,7 @@ void checkJacobian(const Jacobian &J) {
     // Assume J is your analytical Jacobian already computed for 'theta'
 
     for (int joint = 0; joint < 3; ++joint) {
-        Serial.print("Joint "); Serial.print(joint); Serial.print(": ");
+        Serial2.print("Joint "); Serial2.print(joint); Serial2.print(": ");
 
         // Forward (one-sided) difference
         float theta_forward[3] = {theta[0], theta[1], theta[2]};
@@ -367,12 +367,12 @@ void checkJacobian(const Jacobian &J) {
             error += fabsf(numerical[i] - analytical[i]);
         }
 
-        Serial.print("Error = "); Serial.print(error, 6);
-        Serial.println((error < 0.3f) ? " ✓ PASS" : " ✗ FAIL");
+        Serial2.print("Error = "); Serial2.print(error, 6);
+        Serial2.println((error < 0.3f) ? " ✓ PASS" : " ✗ FAIL");
     }
     
     // === 3. RANK AND CONDITIONING ===
-    Serial.println("\n3. Rank and Conditioning");
+    Serial2.println("\n3. Rank and Conditioning");
     
     // Extract translational Jacobian (3x3)
     float J_v[3][3];
@@ -383,18 +383,18 @@ void checkJacobian(const Jacobian &J) {
     }
     
     float det = determinant3x3(J_v);
-    Serial.print("det(J_v) = "); Serial.print(det, 6);
+    Serial2.print("det(J_v) = "); Serial2.print(det, 6);
     
     if (abs(det) < 0.0001) {
-        Serial.println(" ✗ SINGULAR - Robot at singularity!");
+        Serial2.println(" ✗ SINGULAR - Robot at singularity!");
     } else if (abs(det) < 0.01) {
-        Serial.println(" ⚠ NEAR-SINGULAR - Poor conditioning");
+        Serial2.println(" ⚠ NEAR-SINGULAR - Poor conditioning");
     } else {
-        Serial.println(" ✓ WELL-CONDITIONED");
+        Serial2.println(" ✓ WELL-CONDITIONED");
     }
     
     // // === 4. ZERO CONFIGURATION SANITY CHECK ===
-    // Serial.println("\n4. Zero Configuration Check");
+    // Serial2.println("\n4. Zero Configuration Check");
     
     // bool at_zero = true;
     // for (int i = 0; i < 3; i++) {
@@ -405,8 +405,8 @@ void checkJacobian(const Jacobian &J) {
     // }
     
     // if (at_zero) {
-    //     Serial.println("Robot is at zero configuration - manual verification needed");
-    //     Serial.print("j1_linear should align with z0 × r_base_to_ee");
+    //     Serial2.println("Robot is at zero configuration - manual verification needed");
+    //     Serial2.print("j1_linear should align with z0 × r_base_to_ee");
         
     //     // Calculate expected j1_linear at zero config
     //     float base_to_ee[3];
@@ -417,18 +417,18 @@ void checkJacobian(const Jacobian &J) {
     //     float expected_j1[3];
     //     crossProduct(z0, base_to_ee, expected_j1);
         
-    //     Serial.print("\nExpected j1_linear: [");
-    //     Serial.print(expected_j1[0], 3); Serial.print(", ");
-    //     Serial.print(expected_j1[1], 3); Serial.print(", ");
-    //     Serial.print(expected_j1[2], 3); Serial.println("]");
+    //     Serial2.print("\nExpected j1_linear: [");
+    //     Serial2.print(expected_j1[0], 3); Serial2.print(", ");
+    //     Serial2.print(expected_j1[1], 3); Serial2.print(", ");
+    //     Serial2.print(expected_j1[2], 3); Serial2.println("]");
         
-    //     Serial.print("Actual j1_linear:   [");
-    //     Serial.print(j1_linear[0], 3); Serial.print(", ");
-    //     Serial.print(j1_linear[1], 3); Serial.print(", ");
-    //     Serial.print(j1_linear[2], 3); Serial.println("]");
+    //     Serial2.print("Actual j1_linear:   [");
+    //     Serial2.print(j1_linear[0], 3); Serial2.print(", ");
+    //     Serial2.print(j1_linear[1], 3); Serial2.print(", ");
+    //     Serial2.print(j1_linear[2], 3); Serial2.println("]");
     // } else {
-    //     Serial.println("Robot not at zero configuration - skipping manual check");
+    //     Serial2.println("Robot not at zero configuration - skipping manual check");
     // }
     
-    Serial.println("=== VALIDATION COMPLETE ===\n");
+    Serial2.println("=== VALIDATION COMPLETE ===\n");
 }
